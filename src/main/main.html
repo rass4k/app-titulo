@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panel Principal</title>
+    <!-- Política básica de Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+    <link rel="stylesheet" href="../assets/main.css" />
+  </head>
+  <body>
+    <div id="container">
+      <!-- Menú lateral izquierdo -->
+      <div id="sidebar">
+        <ul>
+          <li><a href="#" id="menu-dashboard">Dashboard</a></li>
+          <li><a href="#" id="menu-gestion-empleados">Gestión Empleados</a></li>
+          <li><a href="#" id="menu-registrar-empleados">Registrar Empleados</a></li>
+          <li><a href="#" id="menu-registro-asistencia">Registro de Asistencia</a></li>
+        </ul>
+      </div>
+
+      <!-- Área principal a la derecha -->
+      <div id="content">
+        <h1 id="welcome-message">Bienvenido, Usuario</h1>
+        <div id="page-content">
+          <!-- Aquí se cargará dinámicamente el contenido según la opción elegida -->
+        </div>
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
