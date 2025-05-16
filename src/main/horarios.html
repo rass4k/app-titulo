@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asignación de Turnos</title>
+  <link rel="stylesheet" href="horarios.css" />
+</head>
+<body>
+
+  <header>
+    <button id="volver">← Volver</button>
+    <h1>Asignación de Turnos Semanales</h1>
+  </header>
+  <nav class="navbar-horarios">
+    <button id="btn-abrir-modal-fijo">Asignar horario fijo</button>
+    <button id="limpiar-horarios">Limpiar horarios</button>
+    <button id="btn-asignar-vacaciones">Asignar vacaciones</button>
+    <button id="semana-anterior"> ← </button>
+    <button id="semana-siguiente"> → </button>
+    <button id="guardar-horarios">Guardar</button>
+    <button id="exportar-pdf">Exportar a PDF</button>
+  </nav>
+  <div class="tabla-scroll">
+    <table id="tabla-turnos">
+      <thead>
+        <tr>
+          <th>Empleado</th>
+          <th>Lunes</th>
+          <th>Martes</th>
+          <th>Miércoles</th>
+          <th>Jueves</th>
+          <th>Viernes</th>
+          <th>Sábado</th>
+          <th>Domingo</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-tabla"></tbody>
+    </table>
+  </div>
+
+  <div id="reloj-modal">
+    <label>Hora Entrada: <input type="time" id="hora-entrada" /></label>
+    <label>Hora Salida: <input type="time" id="hora-salida" /></label>
+    <button id="guardar-hora">Guardar</button>
+  </div>
+
+  <div id="modal-fijo" class="modal-overlay">
+    <div class="modal-fijo-contenido">
+      <h3>Horario Fijo</h3>
+    
+      <div class="campo-horario">
+        <label>Entrada:</label>
+        <input type="time" id="entrada-fija" />
+      </div>
+      <div class="campo-horario">
+        <label>Salida:</label>
+        <input type="time" id="salida-fija" />
+      </div>
+    
+      <div style="margin-top: 15px; text-align: left;">
+        <p><strong>¿Dónde aplicar?</strong></p>
+
+        <label>
+          <input type="radio" name="modo-aplicacion" value="todos" />
+          Todos los días (incluye feriados)
+        </label><br />
+      
+        <label>
+          <input type="radio" name="modo-aplicacion" value="habiles" checked />
+          Solo días hábiles (lun–vie, sin feriados)
+        </label><br />
+      
+        <label>
+          <input type="radio" name="modo-aplicacion" value="sinferiados" />
+          Todos los días excepto feriados
+        </label><br />
+
+        <label>
+          <input type="radio" name="modo-aplicacion" value="habilesconferiados" />
+          Solo días hábiles (lun–vie, incluyendo feriados)
+        </label><br />
+
+        <label>
+          <input type="radio" name="modo-aplicacion" value="todos-excepto" />
+          A todos los días excepto:
+        </label>
+        <select id="dia-libre-semanal" style="margin-left: 8px;">
+          <option value="">— Seleccionar día —</option>
+          <option value="0">Domingo</option>
+          <option value="1">Lunes</option>
+          <option value="2">Martes</option>
+          <option value="3">Miércoles</option>
+          <option value="4">Jueves</option>
+          <option value="5">Viernes</option>
+          <option value="6">Sábado</option>
+        </select><br />
+      </div>
+    
+      <div class="botones-modal">
+        <button id="aplicar-fijo" class="btn-aplicar">Aplicar</button>
+        <button onclick="document.getElementById('modal-fijo').style.display='none'" class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-confirmacion" class="modal-overlay">
+    <div class="modal-contenido">
+      <h3>¿Estás seguro de que deseas limpiar todos los horarios?</h3>
+      <div class="botones-modal">
+        <button id="confirmar-limpieza" class="btn-aplicar">Sí, limpiar</button>
+        <button id="cancelar-limpieza" class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-vacaciones" class="modal-overlay">
+    <div class="modal-contenido">
+      <h3>Asignar Vacaciones</h3>
+
+      <div class="campo-horario">
+        <label>Empleado:</label>
+        <select id="select-empleado-vac">
+          <option value="all">— Todos —</option>
+          <!-- Aquí se inyectan las opciones de cada empleado -->
+        </select>
+      </div>
+
+      <div class="campo-horario">
+        <label>Desde:</label>
+        <input type="date" id="vac-inicio" />
+      </div>
+
+      <div class="campo-horario">
+        <label>Hasta:</label>
+        <input type="date" id="vac-fin" />
+      </div>
+
+      <div class="botones-modal">
+        <button id="confirmar-vacaciones" class="btn-aplicar">Asignar</button>
+        <button id="cancelar-vacaciones" class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast-container" style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 8px;
+    z-index: 3000;
+  "></div>
+
+  
+
+
+  <script src="horarios.js"></script>
+</body>
+</html>
