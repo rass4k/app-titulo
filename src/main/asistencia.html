@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconocimiento de Empleados</title>
+  <link rel="stylesheet" href="asistencia.css">
+</head>
+<body>
+  <header>
+    <button id="volver" onclick="history.back()">← Volver</button>
+    <h1>Reconocimiento Facial</h1>
+  </header>
+  <div class="navbar-horarios">
+    <label for="periodo">Ver por:</label>
+    <select id="periodo" class="btn-horario-fijo">
+      <option value="dia">Día</option>
+      <option value="semana" selected>Semana</option>
+      <option value="mes">Mes</option>
+    </select>
+    <label for="fecha">Fecha:</label>
+    <input type="date" id="fecha" class="btn-horario-fijo" />
+    <button id="btn-filtrar" class="btn-horario-fijo">Filtrar</button>
+    <button id="btn-refresh">Refresh Tabla</button>
+    <button id="btn-reconocer" class="btn-horario-fijo">Reconocer Empleado</button>
+  </div>
+
+  <main>
+    <section class="reconocimiento tabla-scroll">
+      <div id="status"></div>
+    </section>
+
+    <section class="tabla-asistencias tabla-scroll">
+      <h2>Historial de Reconocimientos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID Empleado</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody id="asistencias-body">
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="asistencia.js"></script>
+</body>
+</html>
