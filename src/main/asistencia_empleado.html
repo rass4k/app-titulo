@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistencias</title>
+  <link rel="stylesheet" href="asistencia_empleado.css">
+</head>
+<body>
+  <!-- Cabecera con botón volver y título de la página -->
+  <header>
+    <button id="volver" onclick="history.back()">← Volver</button>
+    <h1>Gestionar Asistencias</h1>
+  </header>
+
+  <!-- Controles para filtros y reporte PDF -->
+  <div class="controles navbar-horarios" style="gap:12px; align-items: center;">
+    <label>
+      Desde: <input type="date" id="date-from" class="btn-horario-fijo" />
+    </label>
+    <label>
+      Hasta: <input type="date" id="date-to" class="btn-horario-fijo" />
+    </label>
+     <button id="semana-prev" title="Semana anterior">⬅️</button>
+     <button id="semana-next" title="Semana siguiente">➡️</button>
+    <button id="btn-pdf" class="btn-horario-fijo">Generar PDF</button>
+    <button id="refresh-btn" class="btn-horario-fijo">Actualizar</button>
+  </div>
+  
+
+  <!-- Info de empleado/periodo seleccionado -->
+  <div id="info-filtro" style="margin-bottom:10px; font-weight:bold;"></div>
+
+  <div class="layout">
+    <!-- Columna de empleados con opción 'Todos' -->
+    <aside class="sidebar">
+      <ul id="empleados-list">
+        <!-- Dinámico via JS -->
+      </ul>
+    </aside>
+
+    <!-- Panel principal: controles y tabla de asistencias -->
+    <main class="content">
+      <div id="asistencias-panel" class="tabla-scroll">
+        <!-- Aquí se renderiza la tabla según la vista -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal para detalles de asistencia -->
+  <div id="modal-detalle" class="modal-overlay" style="display:none;">
+    <div class="modal-contenido">
+      <h3 id="modal-titulo">Detalle de asistencia</h3>
+      <div id="modal-detalle-body"></div>
+      <div class="botones-modal">
+        <button id="cerrar-modal" class="btn-cancelar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="asistencia_empleado.js"></script>
+</body>
+</html>
