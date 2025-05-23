@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestionar Empleados</title>
+
+  <!-- Hoja de estilos externa -->
+  <link rel="stylesheet" href="gestionar-empleados.css" />
+
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+</head>
+
+<body>
+
+  <!-- ───── CABECERA ───── -->
+  <header>
+    <h1>Gestionar Empleados</h1>
+    <button id="btn-volver" class="btn-volver">Volver atrás</button>
+  </header>
+
+  <!-- ───── BARRA DE ACCIONES ───── -->
+  <nav class="navbar-empleados">
+    <input id="input-buscar" type="text" placeholder="Buscar empleado…" />
+    <a href="empleados_form.html"
+      id="btn-agregar-empleado"
+      class="btn-agregar">
+      Agregar Empleado
+    </a>
+    <button id="btn-refrescar" class="btn-refrescar">Refrescar</button>
+  </nav>
+
+  <!-- ───── TABLA ───── -->
+  <div class="tabla-scroll">
+    <table id="tabla-empleados">
+      <thead>
+        <tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr>
+      </thead>
+      <tbody><!-- JS rellena --></tbody>
+    </table>
+  </div>
+
+  <!-- ───── MODAL EDITAR ───── -->
+  <div id="modal-editar" class="modal-overlay">
+    <div class="modal-contenido">
+      <h3>Editar Empleado</h3>
+      <form id="form-editar">
+        <input type="hidden" id="edit-id" />
+
+        <div class="campo">
+          <label for="edit-rut">RUT:</label>
+          <input id="edit-rut" type="text" placeholder="12.345.678-5" required />
+        </div>
+
+        <div class="campo">
+          <label for="edit-nombres">Nombres:</label>
+          <input id="edit-nombres" type="text" required />
+        </div>
+
+        <div class="campo">
+          <label for="edit-apellidoPaterno">Apellido Paterno:</label>
+          <input id="edit-apellidoPaterno" type="text" required />
+        </div>
+
+        <div class="campo">
+          <label for="edit-apellidoMaterno">Apellido Materno:</label>
+          <input id="edit-apellidoMaterno" type="text" required />
+        </div>
+
+        <div class="campo">
+          <label for="edit-telefono">Teléfono:</label>
+          <input id="edit-telefono" type="tel" />
+        </div>
+
+        <div class="campo">
+          <label for="edit-email">Email:</label>
+          <input id="edit-email" type="email" />
+        </div>
+
+        <div class="campo">
+          <label for="edit-nombre">Primer Nombre:</label>
+          <input id="edit-nombre" type="text" placeholder="Ej: Rodrigo" required />
+        </div>
+
+        <div class="botones-modal">
+          <button type="submit" class="btn-aplicar">Guardar</button>
+          <button type="button" id="btn-cancelar-editar" class="btn-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ───── MODAL ELIMINAR ───── -->
+  <div id="modal-eliminar" class="modal-overlay">
+    <div class="modal-contenido">
+      <h3>¿Eliminar empleado?</h3>
+      <div class="botones-modal">
+        <button id="btn-confirmar-eliminar" class="btn-aplicar">Eliminar</button>
+        <button id="btn-cancelar-eliminar"  class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── MODAL VER ───── -->
+  <div id="modal-ver" class="modal-overlay">
+    <div class="modal-contenido">
+      <h3>Detalles del Empleado</h3>
+
+      <p><strong>ID:</strong>      <span id="ver-id">—</span></p>
+      <p><strong>Nombre:</strong>  <span id="ver-nombre">—</span></p>
+      <p><strong>RUT:</strong>     <span id="ver-rut">—</span></p>
+      <p><strong>Teléfono:</strong><span id="ver-telefono">—</span></p>
+      <p><strong>Email:</strong>   <span id="ver-email">—</span></p>
+      <p><strong>Creado:</strong>  <span id="ver-creado">—</span></p>
+
+      <div class="botones-modal">
+        <button id="btn-cerrar-ver" class="btn-cancelar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de toasts -->
+  <div id="toast-container"></div>
+
+  <!-- Script principal -->
+  <script src="gestionar-empleados.js"></script>
+</body>
+</html>
