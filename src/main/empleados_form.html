@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asignación de Turnos</title>
+    <link rel="stylesheet" href="style_empleados.css" />
+  </head>
+  <body>
+    <header>
+      <button id="volver" onclick="history.back()">←Volver</button>
+      <h1>Registrar Empleados</h1>
+    </header>
+    <main>
+      <div class="container">
+        <h2>Agregar Empleado</h2>
+        <form id="empleadoForm">
+          <input
+            type="text"
+            id="nombres"
+            placeholder="Nombres"
+            required
+          />
+          <input
+            type="text"
+            id="apellidoPaterno"
+            placeholder="Apellido Paterno"
+            required
+          />
+          <input
+            type="text"
+            id="apellidoMaterno"
+            placeholder="Apellido Materno"
+            required
+          />
+          <input
+            type="text"
+            id="empId"
+            placeholder="ID Empleado"
+            required
+          />
+
+          <!-- Nuevo campo RUT -->
+          <input
+            type="text"
+            id="rut"
+            placeholder="RUT (12.345.678-5)"
+            required
+            pattern="^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$"
+            title="Formato: 12.345.678-5"
+          />
+
+          <!-- Nuevo campo Teléfono -->
+          <input
+            type="tel"
+            id="telefono"
+            placeholder="Teléfono"
+            required
+            pattern="^[0-9]{7,15}$"
+            title="Solo dígitos, entre 7 y 15 caracteres"
+          />
+
+          <!-- Nuevo campo Email (opcional) -->
+          <input
+            type="email"
+            id="email"
+            placeholder="Email (opcional)"
+          />
+
+          <button type="submit" id="btnGuardar">Guardar datos</button>
+          <button type="button" id="btnRegistrarRostro">
+            Registrar rostro (embeddings)
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="empleados_form.js"></script>
+  </body>
+</html>
