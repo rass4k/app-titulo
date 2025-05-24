@@ -1,0 +1,176 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --primary: #6c5ce7;
+      --secondary: #a29bfe;
+      --dark: #2d3436;
+      --light: #f5f6fa;
+      --accent: #fd79a8;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--dark);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-image: radial-gradient(circle at 10% 20%, rgba(108, 92, 231, 0.1) 0%, rgba(45, 52, 54, 1) 90%);
+    }
+    
+    .auth-container {
+      background: rgba(45, 52, 54, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.5s ease;
+      transform-style: preserve-3d;
+    }
+    
+    .auth-container:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .auth-title {
+      color: var(--light);
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.8rem;
+      position: relative;
+    }
+    
+    .auth-title::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 3px;
+    }
+    
+    .auth-input {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--light);
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.2rem;
+      width: 100%;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+    }
+    
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+    }
+    
+    .auth-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .auth-btn {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 0.8rem;
+      border-radius: 8px;
+      width: 100%;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .auth-btn:active {
+      transform: translateY(0);
+    }
+    
+    .auth-toggle {
+      color: var(--secondary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.3rem;
+    }
+    
+    .auth-toggle:hover {
+      color: var(--accent);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .glow {
+      animation: glow 2s infinite alternate;
+    }
+    
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 5px rgba(108, 92, 231, 0.5);
+      }
+      to {
+        box-shadow: 0 0 20px rgba(108, 92, 231, 0.8);
+      }
+    }
+    
+    .input-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    
+    .input-group label {
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      background: var(--dark);
+      padding: 0 5px;
+      font-size: 0.8rem;
+      color: var(--secondary);
+    }
