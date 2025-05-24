@@ -1,0 +1,42 @@
+<body>
+  <link rel="stylesheet" href="./assets/index.css" />
+  <div class="auth-container animate__animated animate__fadeIn animate__delay-0.5s glow" id="login-container">
+    <h2 class="auth-title">Iniciar Sesión</h2>
+    <form id="loginForm" class="animate-fade-in">
+      <div class="input-group">
+        <label for="correoLogin">Correo</label>
+        <input type="email" id="correoLogin" class="auth-input" placeholder="tucorreo@ejemplo.com" required>
+      </div>
+      <div class="input-group">
+        <label for="claveLogin">Contraseña</label>
+        <input type="password" id="claveLogin" class="auth-input" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="auth-btn">Entrar</button>
+    </form>
+    <p class="auth-footer">¿No tienes cuenta? <button id="mostrarRegistro" class="auth-toggle">Registrarse</button></p>
+  </div>
+
+  <div class="auth-container animate__animated animate__fadeIn hidden" id="registro-container">
+    <h2 class="auth-title">Registro</h2>
+    <form id="registroForm" class="animate-fade-in">
+      <div class="input-group">
+        <label for="nombreRegistro">Nombre completo</label>
+        <input type="text" id="nombreRegistro" class="auth-input" placeholder="Tu nombre completo" required>
+      </div>
+      <div class="input-group">
+        <label for="correoRegistro">Correo</label>
+        <input type="email" id="correoRegistro" class="auth-input" placeholder="tucorreo@ejemplo.com" required>
+      </div>
+      <div class="input-group">
+        <label for="claveRegistro">Contraseña</label>
+        <input type="password" id="claveRegistro" class="auth-input" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="auth-btn">Registrarse</button>
+    </form>
+    <p class="auth-footer">¿Ya tienes cuenta? <button id="mostrarLogin" class="auth-toggle">Volver al login</button></p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="script.js"></script>
+</body>
