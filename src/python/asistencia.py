@@ -60,6 +60,28 @@ mp_drawing = mp.solutions.drawing_utils
 # --------------------------
 # FUNCIONES DE UTILIDAD
 # --------------------------
+def improve_lighting(img_bgr,
+                     clip_limit=2.0,
+                     tile_grid=(8, 8),
+                     target_mean=0.5): 
+    # 1) CLAHE en canal L de LAB
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid)
+    l = clahe.apply(l)
+    lab = cv2.merge((l, a, b))
+    img_eq = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    # 2) Gamma dinámico para fijar brillo medio
+    gray = cv2.cvtColor(img_eq, cv2.COLOR_BGR2GRAY)
+    mean = np.mean(gray) / 255.0 + 1e-6          # evita div/0
+    gamma = np.log(target_mean) / np.log(mean)   # >1 oscurece, <1 aclara
+
+    lut = np.array([(i / 255.0) ** gamma * 255
+                    for i in range(256)]).astype("uint8")
+    img_out = cv2.LUT(img_eq, lut)
+
+    return img_out
 
 def normalize_embedding(emb):
     """
@@ -344,7 +366,7 @@ def main():
             if contador_pestaneos >= 5 and landmarks_suavizados is not None:
                 # 1) Recorta la cara
                 rostro_recortado = crop_face_from_frame(frame, landmarks_suavizados)
-
+                rostro_recortado = improve_lighting(rostro_recortado) 
                 # 2) Extrae el embedding en vivo
                 resultado = DeepFace.represent(
                     img_path=rostro_recortado,

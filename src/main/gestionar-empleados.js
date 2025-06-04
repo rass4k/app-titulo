@@ -60,21 +60,22 @@ function abrirModalVer(emp) {
   } else {
     document.getElementById("ver-creado").textContent = "—";
   }
-
-  // mostrar
-  modalVer.classList.add("active");
+  modalVer.classList.remove("hidden");
+  modalVer.classList.add("flex");
 }
 
 // cerrar con el botón
 btnCerrarVer.addEventListener("click", () => {
-  modalVer.classList.remove("active");
+  modalVer.classList.add("hidden");
+  modalVer.classList.remove("flex");
 });
 
 // cerrar clicando fuera del contenido
 modalVer.addEventListener("click", e => {
   if (e.target === modalVer) {
-    modalVer.classList.remove("active");
-  }
+    modalVer.classList.add("hidden");
+    modalVer.classList.remove("flex");
+ }
 });
 
 
@@ -87,32 +88,37 @@ function construirTabla(lista) {
   }
   lista.forEach(emp => {
     const tr = document.createElement("tr");
-    const tdId = document.createElement("td");
-    tdId.textContent = emp.empId;
-    const tdNombre = document.createElement("td");
-    tdNombre.textContent = emp.nombre;
-    const tdAcc = document.createElement("td");
+    tr.className = "hover:bg-opacity-10";
 
-    // Ver
-    
+    const tdId = document.createElement("td");
+    tdId.className = "px-6 py-4 whitespace-nowrap text-sm font-medium text-light";
+    tdId.textContent = emp.empId;
+
+    const tdNombre = document.createElement("td");
+    tdNombre.className = "px-6 py-4 whitespace-nowrap text-sm text-light";
+    tdNombre.textContent = emp.nombre;
+
+    const tdAcc = document.createElement("td");
+    tdAcc.className = "px-6 py-4 whitespace-nowrap text-sm text-light flex gap-2";
+
+    // Botón Ver
     const btnVer = document.createElement("button");
-    btnVer.className = "btn-icon btn-ver";
-    btnVer.innerHTML = `<span class="material-icons">visibility</span>`;
+    btnVer.className = "btn-ver glow-secondary px-3 py-1 rounded bg-secondary text-dark text-xs font-medium hover:bg-opacity-90 transition-all duration-300";
+    btnVer.innerHTML = `<i class="material-icons text-xs">visibility</i>`;
     btnVer.title = "Ver detalles";
     btnVer.addEventListener("click", () => abrirModalVer(emp));
-    
 
-    // Editar
+    // Botón Editar
     const btnEd = document.createElement("button");
-    btnEd.className = "btn-icon btn-editar";
-    btnEd.innerHTML = `<span class="material-icons">edit</span>`;
+    btnEd.className = "btn-editar glow-primary px-3 py-1 rounded bg-primary text-light text-xs font-medium hover:bg-opacity-90 transition-all duration-300";
+    btnEd.innerHTML = `<i class="material-icons text-xs">edit</i>`;
     btnEd.title = "Editar";
     btnEd.addEventListener("click", () => abrirModalEditar(emp));
 
-    // Eliminar
+    // Botón Eliminar
     const btnEl = document.createElement("button");
-    btnEl.className = "btn-icon btn-eliminar";
-    btnEl.innerHTML = `<span class="material-icons">delete</span>`;
+    btnEl.className = "btn-eliminar glow-accent px-3 py-1 rounded bg-accent text-light text-xs font-medium hover:bg-opacity-90 transition-all duration-300";
+    btnEl.innerHTML = `<i class="material-icons text-xs">delete</i>`;
     btnEl.title = "Eliminar";
     btnEl.addEventListener("click", () => abrirModalEliminar(emp.empId));
 
@@ -121,6 +127,7 @@ function construirTabla(lista) {
     tablaBody.append(tr);
   });
 }
+
 
 // 4) Refrescar
 if (btnRefrescar) {
@@ -147,6 +154,7 @@ function abrirModalEditar(emp) {
   document.getElementById("edit-telefono").value = emp.telefono || "";
   document.getElementById("edit-email").value    = emp.email    || "";
   modalEditar.style.display = "flex";
+  
 }
 
 if (btnCancelarEd) {
@@ -192,13 +200,15 @@ let idAEliminar = null;
 
 function abrirModalEliminar(empId) {
   idAEliminar = empId;
-  modalEliminar.classList.add("active");
+  modalEliminar.classList.remove("hidden");
+  modalEliminar.classList.add("flex");
 }
 
 // Cancelar
 btnCancelarEl.addEventListener("click", () => {
   idAEliminar = null;
-  modalEliminar.classList.remove("active");
+  modalEliminar.classList.add("hidden");
+  modalEliminar.classList.remove("flex");
 });
 
 // Confirmar borrado
@@ -211,7 +221,8 @@ btnConfirmarEl.addEventListener("click", async () => {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) throw new Error(`Error ${res.status}`);
-    modalEliminar.classList.remove("active");
+    modalEliminar.classList.add("hidden");
+    modalEliminar.classList.remove("flex");
     idAEliminar = null;
     await cargarEmpleados();
     showToast("Empleado eliminado", "success");
@@ -225,7 +236,8 @@ btnConfirmarEl.addEventListener("click", async () => {
 modalEliminar.addEventListener("click", e => {
   if (e.target === modalEliminar) {
     idAEliminar = null;
-    modalEliminar.classList.remove("active");
+    modalEliminar.classList.add("hidden");
+    modalEliminar.classList.remove("flex");
   }
 });
 

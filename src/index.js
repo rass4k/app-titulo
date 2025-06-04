@@ -3,45 +3,42 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { spawn } = require('child_process');
 const path = require('node:path');
 
-// Maneja accesos directos de instalación (Windows)
 if (require('electron-squirrel-startup')) app.quit();
 
-/* ---------- Función que crea la ventana ---------- */
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1000,
     height: 720,
     webPreferences: {
-      contextIsolation: true,                           // ← importante
-      preload: path.join(__dirname, 'preload.js'),      // ← tu preload
+      contextIsolation: true,            // Aísla el contexto de Node del renderer
+      nodeIntegration: false,            // Impide require/import desde el HTML
+      enableRemoteModule: false,         // Si no lo necesitas, mantenlo en false
+      preload: path.join(__dirname, 'preload.js'), 
     },
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  mainWindow.webContents.openDevTools();  // opcional: comentar en prod
+  // mainWindow.webContents.openDevTools(); // Comenta esto en producción
 }
 
-/* ---------- IPC: capturarEmbeddingEnVivo ---------- */
 ipcMain.handle('capturarEmbeddingEnVivo', () => {
   return new Promise((resolve, reject) => {
-    // Ruta al script Python (ajusta si está en otro directorio)
     const pyPath = path.join(__dirname, 'python', 'registerv2.py');
-    // Lanza Python sin argumentos → modo webcam interactivo
     const child = spawn('python', [pyPath]);
     let buffer = '';
     let resolved = false;
 
     child.stdout.on('data', (chunk) => {
       buffer += chunk.toString();
-      const brace = buffer.indexOf('{');          // buscamos inicio de JSON
+      const brace = buffer.indexOf('{');
       if (brace !== -1 && !resolved) {
         try {
           const json = JSON.parse(buffer.slice(brace));
           resolved = true;
-          resolve(json.embedding);                // ← devolvemos array[512]
+          resolve(json.embedding);
           child.kill();
         } catch {
-          /* aún no llega todo el JSON; seguimos leyendo */
+          // Aún no llegó todo el JSON
         }
       }
     });
@@ -56,8 +53,7 @@ ipcMain.handle('capturarEmbeddingEnVivo', () => {
   });
 });
 
-
-const fetch = require('node-fetch'); // si lo necesitas
+const fetch = require('node-fetch');
 
 ipcMain.on('compararRostros', (event, idToken) => {
   const pyPath = path.join(__dirname, 'python', 'asistencia.py');
@@ -102,10 +98,7 @@ ipcMain.on('compararRostros', (event, idToken) => {
             mensaje = `Error: ${resp.status} ${await resp.text()}`;
           }
 
-          // Escribe la respuesta para que Python la muestre en pantalla
           child.stdin.write(JSON.stringify({ nombre, mensaje }) + '\n');
-
-          // **Envía un evento al renderer cada vez**
           event.sender.send('compararRostros', { nombre, mensaje, distancia });
 
         } catch (err) {
@@ -128,8 +121,6 @@ ipcMain.on('compararRostros', (event, idToken) => {
   });
 });
 
-
-/* ---------- Ciclo de vida de la app ---------- */
 app.whenReady().then(() => {
   createWindow();
 

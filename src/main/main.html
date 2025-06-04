@@ -1,32 +1,187 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Principal</title>
-    <!-- Política básica de Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <link rel="stylesheet" href="../assets/main.css" />
   </head>
   <body>
     <div id="container">
-      <!-- Menú lateral izquierdo -->
-      <div id="sidebar">
-        <ul>
-          <li><a href="#" id="menu-dashboard">Dashboard</a></li>
-          <li><a href="#" id="menu-gestion-empleados">Gestión Empleados</a></li>
-          <li><a href="#" id="menu-registrar-empleados">Registrar Empleados</a></li>
-          <li><a href="#" id="menu-registro-asistencia">Registro de Asistencia</a></li>
-        </ul>
-      </div>
-
-      <!-- Área principal a la derecha -->
-      <div id="content">
-        <h1 id="welcome-message">Bienvenido, Usuario</h1>
-        <div id="page-content">
-          <!-- Aquí se cargará dinámicamente el contenido según la opción elegida -->
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <span class="logo-text">AdminPro</span>
+                </div>
+            </div>
+            
+            <ul>
+                <li>
+                    <a href="#" id="menu-dashboard" class="active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="menu-gestion-empleados">
+                        <i class="fas fa-users-cog"></i>
+                        <span>Gestión Empleados</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="menu-registrar-empleados">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Registrar Empleados</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="menu-registro-asistencia">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Registro de Asistencia</span>
+                    </a>
+                </li>
+            </ul>
         </div>
-      </div>
+
+        <!-- Main content -->
+        <div id="content">
+            <header id="header">
+                <div class="header-left">
+                    <button class="toggle-btn" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="search-bar">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" placeholder="Buscar...">
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <button class="user-btn" id="user-menu-button">
+                        <div class="user-avatar">AD</div>
+                        <span class="user-name">Admin</span>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    
+                    <div class="user-dropdown" id="user-dropdown">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            <span>Mi perfil</span>
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-cog"></i>
+                            <span>Configuración</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Cerrar sesión</span>
+                        </a>
+                    </div>
+                </div>
+            </header>
+            
+            <div id="page-content">
+                <h1 id="welcome-message">Bienvenido, Administrador</h1>
+                
+                <div id="dashboard-content">
+                    <!-- Dashboard content -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-title">Empleados Activos</div>
+                            <div class="stat-value">142</div>
+                            <div class="stat-change">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>5.2% este mes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="stat-title">Asistencias Hoy</div>
+                            <div class="stat-value">128</div>
+                            <div class="stat-change">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>3.8% desde ayer</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-user-plus"></i>
+                            <div class="stat-title">Nuevos Registros</div>
+                            <div class="stat-value">7</div>
+                            <div class="stat-change down">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>1.2% este mes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-clock"></i>
+                            <div class="stat-title">Horas Trabajadas</div>
+                            <div class="stat-value">1,248</div>
+                            <div class="stat-change">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>8.5% esta semana</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
+                        <!-- Asistencia Mensual -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                          <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Asistencia Mensual</h2>
+                          </div>
+                          <canvas id="chartAsistencia" class="h-64"></canvas>
+                        </div>
+                      
+                        <!-- Distribución por Empleado -->
+                        <div class="bg-white rounded-lg shadow p-6">
+                          <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800">Distribución por Empleado</h2>
+                          </div>
+                          <canvas id="chartEmpleado" class="h-64"></canvas>
+                        </div>
+                      </div>
+                </div>
+                
+                <div id="gestion-empleados-content" class="hidden">
+                    <!-- Employee management content -->
+                    <div class="card">
+                        <div class="card-title">Gestión de Empleados</div>
+                        <p>Tabla con lista de empleados y herramientas de gestión...</p>
+                    </div>
+                </div>
+                
+                <div id="registrar-empleados-content" class="hidden">
+                    <!-- Employee registration content -->
+                    <div class="card">
+                        <div class="card-title">Registrar Nuevos Empleados</div>
+                        <p>Formulario completo para registrar nuevos empleados...</p>
+                    </div>
+                </div>
+                
+                <div id="registro-asistencia-content" class="hidden">
+                    <!-- Attendance registration content -->
+                    <div class="card">
+                        <div class="card-title">Registro de Asistencia</div>
+                        <p>Sistema de registro de asistencia con opciones avanzadas...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

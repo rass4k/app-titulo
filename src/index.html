@@ -1,5 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- Content Security Policy ajustada para permitir Google Fonts y Firebase Auth -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self'
+      https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js
+      https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data:;
+    connect-src 'self'
+      https://identitytoolkit.googleapis.com
+      https://securetoken.googleapis.com
+      https://www.googleapis.com
+      https://firebaseinstallations.googleapis.com
+      https://firebaselogging-pa.googleapis.com
+      https://connection-bd.onrender.com;
+  ">
+
+
+  <title>Mi App de Reconocimiento Facial</title>
+  <!-- Asegúrate de que “styles.css” realmente exista en la misma carpeta que este index.html -->
+  <link rel="stylesheet" href="./assets/index.css">
+  <!-- Google Fonts (Poppins) -->
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+</head>
 <body>
-  <link rel="stylesheet" href="./assets/index.css" />
   <div class="auth-container animate__animated animate__fadeIn animate__delay-0.5s glow" id="login-container">
     <h2 class="auth-title">Iniciar Sesión</h2>
     <form id="loginForm" class="animate-fade-in">
@@ -36,7 +66,10 @@
     <p class="auth-footer">¿Ya tienes cuenta? <button id="mostrarLogin" class="auth-toggle">Volver al login</button></p>
   </div>
 
+  <!-- Firebase JS SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="script.js"></script>
+  <!-- Tu propio script -->
+  <script src="./script.js"></script>
 </body>
+</html>

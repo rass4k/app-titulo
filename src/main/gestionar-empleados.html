@@ -1,129 +1,198 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionar Empleados</title>
-
-  <!-- Hoja de estilos externa -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="gestionar-empleados.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6c5ce7',
+            secondary: '#a29bfe',
+            dark: '#2d3436',
+            light: '#f5f6fa',
+            accent: '#fd79a8',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Material Icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 </head>
-
-<body>
-
-  <!-- ───── CABECERA ───── -->
-  <header>
-    <h1>Gestionar Empleados</h1>
-    <button id="btn-volver" class="btn-volver">Volver atrás</button>
+<body class="min-h-screen bg-dark text-light">
+  <!-- Header -->
+  <header class="bg-darker p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 z-10">
+    <button id="volver" onclick="history.back()" class="flex items-center text-secondary hover:text-primary transition-colors glow-secondary px-4 py-2 rounded-lg">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+      </svg>
+      Volver
+    </button>
+    <h1 class="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+      Gestionar Empleados
+    </h1>
+    <div class="w-24"></div> <!-- Spacer for balance -->
   </header>
 
   <!-- ───── BARRA DE ACCIONES ───── -->
-  <nav class="navbar-empleados">
-    <input id="input-buscar" type="text" placeholder="Buscar empleado…" />
-    <a href="empleados_form.html"
-      id="btn-agregar-empleado"
-      class="btn-agregar">
-      Agregar Empleado
-    </a>
-    <button id="btn-refrescar" class="btn-refrescar">Refrescar</button>
+  <nav class="sticky top-[88px] z-20 bg-darker p-4 flex flex-wrap items-center gap-4 border-b border-t border-primary shadow-lg">
+    <div class="relative flex-grow min-w-[200px]">
+      <input id="input-buscar" type="text" placeholder="Buscar empleado…" 
+             class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 pl-10 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+      <i class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-secondary">search</i>
+    </div>
+    <div class="flex gap-4 flex-wrap">
+      <a href="empleados_form.html" id="btn-agregar-empleado" 
+         class="btn-agregar glow-primary px-4 py-2 rounded-lg bg-primary text-light font-medium hover:bg-opacity-90 transition-all duration-300 flex items-center whitespace-nowrap">
+        <i class="material-icons mr-2">person_add</i>Agregar Empleado
+      </a>
+      <button id="btn-refrescar" class="btn-refrescar glow-secondary px-4 py-2 rounded-lg bg-secondary text-dark font-medium hover:bg-opacity-90 transition-all duration-300 flex items-center whitespace-nowrap">
+        <i class="material-icons mr-2">refresh</i>Refrescar
+      </button>
+    </div>
   </nav>
-
-  <!-- ───── TABLA ───── -->
-  <div class="tabla-scroll">
-    <table id="tabla-empleados">
-      <thead>
-        <tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr>
-      </thead>
-      <tbody><!-- JS rellena --></tbody>
-    </table>
-  </div>
-
-  <!-- ───── MODAL EDITAR ───── -->
-  <div id="modal-editar" class="modal-overlay">
-    <div class="modal-contenido">
-      <h3>Editar Empleado</h3>
-      <form id="form-editar">
-        <input type="hidden" id="edit-id" />
-
-        <div class="campo">
-          <label for="edit-rut">RUT:</label>
-          <input id="edit-rut" type="text" placeholder="12.345.678-5" required />
-        </div>
-
-        <div class="campo">
-          <label for="edit-nombres">Nombres:</label>
-          <input id="edit-nombres" type="text" required />
-        </div>
-
-        <div class="campo">
-          <label for="edit-apellidoPaterno">Apellido Paterno:</label>
-          <input id="edit-apellidoPaterno" type="text" required />
-        </div>
-
-        <div class="campo">
-          <label for="edit-apellidoMaterno">Apellido Materno:</label>
-          <input id="edit-apellidoMaterno" type="text" required />
-        </div>
-
-        <div class="campo">
-          <label for="edit-telefono">Teléfono:</label>
-          <input id="edit-telefono" type="tel" />
-        </div>
-
-        <div class="campo">
-          <label for="edit-email">Email:</label>
-          <input id="edit-email" type="email" />
-        </div>
-
-        <div class="campo">
-          <label for="edit-nombre">Primer Nombre:</label>
-          <input id="edit-nombre" type="text" placeholder="Ej: Rodrigo" required />
-        </div>
-
-        <div class="botones-modal">
-          <button type="submit" class="btn-aplicar">Guardar</button>
-          <button type="button" id="btn-cancelar-editar" class="btn-cancelar">Cancelar</button>
-        </div>
-      </form>
+    <div class="tabla-scroll overflow-x-auto p-6">
+      <table id="tabla-empleados" class="w-full bg-darker rounded-lg overflow-hidden border-collapse border-primary">
+        <thead class="bg-primary-transparent">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-light uppercase tracking-wider">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-light uppercase tracking-wider">Nombre</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-light uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-primary">
+          <!-- Ejemplo de fila (JS rellenará esto) -->
+          <tr class="hover:bg-opacity-10">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-light">1</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-light">Juan Pérez</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-light flex gap-2">
+              <button class="btn-ver glow-secondary px-3 py-1 rounded bg-secondary text-dark text-xs font-medium hover:bg-opacity-90 transition-all duration-300">
+                <i class="material-icons text-xs">visibility</i>
+              </button>
+              <button class="btn-editar glow-primary px-3 py-1 rounded bg-primary text-light text-xs font-medium hover:bg-opacity-90 transition-all duration-300">
+                <i class="material-icons text-xs">edit</i>
+              </button>
+              <button class="btn-eliminar glow-accent px-3 py-1 rounded bg-accent text-light text-xs font-medium hover:bg-opacity-90 transition-all duration-300">
+                <i class="material-icons text-xs">delete</i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </div>
-
-  <!-- ───── MODAL ELIMINAR ───── -->
-  <div id="modal-eliminar" class="modal-overlay">
-    <div class="modal-contenido">
-      <h3>¿Eliminar empleado?</h3>
-      <div class="botones-modal">
-        <button id="btn-confirmar-eliminar" class="btn-aplicar">Eliminar</button>
-        <button id="btn-cancelar-eliminar"  class="btn-cancelar">Cancelar</button>
+  
+    <!-- ───── MODAL EDITAR ───── -->
+    <div id="modal-editar"
+     class="modal-overlay fixed inset-0 z-50 flex items-start sm:items-center justify-center
+            overflow-y-auto p-4 hidden">
+            <div class="modal-contenido bg-darker rounded-lg shadow-xl p-6
+            w-full max-w-md border border-primary
+            max-h-[90vh] overflow-y-auto">
+        <h3 class="text-xl font-bold text-primary mb-4">Editar Empleado</h3>
+        <form id="form-editar" class="space-y-4">
+          <input type="hidden" id="edit-id">
+  
+          <div class="campo">
+            <label for="edit-rut" class="block text-sm font-medium text-light mb-1">RUT:</label>
+            <input id="edit-rut" type="text" placeholder="12.345.678-5" required
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-nombres" class="block text-sm font-medium text-light mb-1">Nombres:</label>
+            <input id="edit-nombres" type="text" required
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-apellidoPaterno" class="block text-sm font-medium text-light mb-1">Apellido Paterno:</label>
+            <input id="edit-apellidoPaterno" type="text" required
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-apellidoMaterno" class="block text-sm font-medium text-light mb-1">Apellido Materno:</label>
+            <input id="edit-apellidoMaterno" type="text" required
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-telefono" class="block text-sm font-medium text-light mb-1">Teléfono:</label>
+            <input id="edit-telefono" type="tel"
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-email" class="block text-sm font-medium text-light mb-1">Email:</label>
+            <input id="edit-email" type="email"
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="campo">
+            <label for="edit-nombre" class="block text-sm font-medium text-light mb-1">Primer Nombre:</label>
+            <input id="edit-nombre" type="text" placeholder="Ej: Rodrigo" required
+                   class="w-full bg-dark-transparent border border-primary rounded-lg px-4 py-2 text-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+  
+          <div class="botones-modal flex justify-end gap-3">
+            <button type="submit" class="btn-aplicar glow-primary px-4 py-2 rounded-lg bg-primary text-light font-medium hover:bg-opacity-90 transition-all duration-300">
+              Guardar
+            </button>
+            <button type="button" id="btn-cancelar-editar" class="btn-cancelar glow-secondary px-4 py-2 rounded-lg bg-secondary text-dark font-medium hover:bg-opacity-90 transition-all duration-300">
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  </div>
-
-  <!-- ───── MODAL VER ───── -->
-  <div id="modal-ver" class="modal-overlay">
-    <div class="modal-contenido">
-      <h3>Detalles del Empleado</h3>
-
-      <p><strong>ID:</strong>      <span id="ver-id">—</span></p>
-      <p><strong>Nombre:</strong>  <span id="ver-nombre">—</span></p>
-      <p><strong>RUT:</strong>     <span id="ver-rut">—</span></p>
-      <p><strong>Teléfono:</strong><span id="ver-telefono">—</span></p>
-      <p><strong>Email:</strong>   <span id="ver-email">—</span></p>
-      <p><strong>Creado:</strong>  <span id="ver-creado">—</span></p>
-
-      <div class="botones-modal">
-        <button id="btn-cerrar-ver" class="btn-cancelar">Cerrar</button>
+  
+    <!-- ───── MODAL ELIMINAR ───── -->
+    <div id="modal-eliminar" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center hidden">
+      <div class="modal-contenido bg-darker rounded-lg shadow-xl p-6 w-full max-w-md border border-primary">
+        <h3 class="text-xl font-bold text-accent mb-4">¿Eliminar empleado?</h3>
+        <p class="text-light mb-6">Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar este empleado?</p>
+        <div class="botones-modal flex justify-end gap-3">
+          <button id="btn-confirmar-eliminar" class="btn-aplicar glow-accent px-4 py-2 rounded-lg bg-accent text-light font-medium hover:bg-opacity-90 transition-all duration-300">
+            Eliminar
+          </button>
+          <button id="btn-cancelar-eliminar" class="btn-cancelar glow-secondary px-4 py-2 rounded-lg bg-secondary text-dark font-medium hover:bg-opacity-90 transition-all duration-300">
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Contenedor de toasts -->
-  <div id="toast-container"></div>
-
-  <!-- Script principal -->
+  
+    <!-- ───── MODAL VER ───── -->
+    <div id="modal-ver" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center hidden">
+      <div class="modal-contenido bg-darker rounded-lg shadow-xl p-6 w-full max-w-md border border-primary">
+        <h3 class="text-xl font-bold text-primary mb-4">Detalles del Empleado</h3>
+  
+        <div class="space-y-3 text-light">
+          <p><strong class="text-primary">ID:</strong> <span id="ver-id" class="ml-2">—</span></p>
+          <p><strong class="text-primary">Nombre:</strong> <span id="ver-nombre" class="ml-2">—</span></p>
+          <p><strong class="text-primary">RUT:</strong> <span id="ver-rut" class="ml-2">—</span></p>
+          <p><strong class="text-primary">Teléfono:</strong> <span id="ver-telefono" class="ml-2">—</span></p>
+          <p><strong class="text-primary">Email:</strong> <span id="ver-email" class="ml-2">—</span></p>
+          <p><strong class="text-primary">Creado:</strong> <span id="ver-creado" class="ml-2">—</span></p>
+        </div>
+  
+        <div class="botones-modal flex justify-end mt-6">
+          <button id="btn-cerrar-ver" class="btn-cancelar glow-secondary px-4 py-2 rounded-lg bg-secondary text-dark font-medium hover:bg-opacity-90 transition-all duration-300">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Contenedor de toasts -->
+    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+  
   <script src="gestionar-empleados.js"></script>
 </body>
 </html>

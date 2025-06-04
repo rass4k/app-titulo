@@ -1,157 +1,277 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Asignación de Turnos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="horarios.css" />
+  <!-- jsPDF principal ya lo tienes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- jsPDF-AutoTable (plugin) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6c5ce7',
+            secondary: '#a29bfe',
+            dark: '#2d3436',
+            light: '#f5f6fa',
+            accent: '#fd79a8',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
 </head>
-<body>
+<body class="bg-dark text-light">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-darker p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 z-10">
+      <button id="volver" class="flex items-center text-secondary hover:text-primary transition-colors glow-secondary px-4 py-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Volver
+      </button>
+      <h1 class="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+        Asignación de Turnos Semanales
+      </h1>
+      <div class="w-24"></div> <!-- Spacer for balance -->
+    </header>
 
-  <header>
-    <button id="volver">← Volver</button>
-    <h1>Asignación de Turnos Semanales</h1>
-  </header>
-  <nav class="navbar-horarios">
-    <button id="btn-abrir-modal-fijo">Asignar horario fijo</button>
-    <button id="limpiar-horarios">Limpiar horarios</button>
-    <button id="btn-asignar-vacaciones">Asignar vacaciones</button>
-    <button id="semana-anterior"> ← </button>
-    <button id="semana-siguiente"> → </button>
-    <button id="guardar-horarios">Guardar</button>
-    <button id="exportar-pdf">Exportar a PDF</button>
-  </nav>
-  <div class="tabla-scroll">
-    <table id="tabla-turnos">
-      <thead>
-        <tr>
-          <th>Empleado</th>
-          <th>Lunes</th>
-          <th>Martes</th>
-          <th>Miércoles</th>
-          <th>Jueves</th>
-          <th>Viernes</th>
-          <th>Sábado</th>
-          <th>Domingo</th>
-        </tr>
-      </thead>
-      <tbody id="cuerpo-tabla"></tbody>
-    </table>
+    <!-- Navigation -->
+    <nav class="bg-darker p-4 border-b border-gray-700 flex flex-wrap gap-2 justify-center sticky top-16 z-10">
+      <button id="btn-abrir-modal-fijo" class="px-4 py-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2 glow-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+        </svg>
+        Horario fijo
+      </button>
+      <button id="limpiar-horarios" class="px-4 py-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2 glow-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        Limpiar
+      </button>
+      <button id="btn-asignar-vacaciones" class="px-4 py-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2 glow-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+          <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+        </svg>
+        Vacaciones
+      </button>
+      <div class="flex items-center gap-2">
+        <button id="semana-anterior" class="p-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all glow-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <button id="semana-siguiente" class="p-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all glow-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+      <button id="guardar-horarios" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark transition-all flex items-center gap-2 glow-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+        </svg>
+        Guardar
+      </button>
+      <button id="exportar-pdf" class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dark transition-all flex items-center gap-2 glow-accent">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+        Exportar PDF
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 overflow-x-auto">
+      <div class="bg-darker rounded-xl border border-gray-700 overflow-hidden">
+        <table id="tabla-turnos" class="w-full">
+          <thead class="bg-gray-800">
+            <tr>
+              <th class="p-3 text-left font-medium text-primary">Empleado</th>
+              <th class="p-3 text-center font-medium">Lunes</th>
+              <th class="p-3 text-center font-medium">Martes</th>
+              <th class="p-3 text-center font-medium">Miércoles</th>
+              <th class="p-3 text-center font-medium">Jueves</th>
+              <th class="p-3 text-center font-medium">Viernes</th>
+              <th class="p-3 text-center font-medium">Sábado</th>
+              <th class="p-3 text-center font-medium">Domingo</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-tabla" class="divide-y divide-gray-700"></tbody>
+        </table>
+      </div>
+    </main>
   </div>
 
-  <div id="reloj-modal">
-    <label>Hora Entrada: <input type="time" id="hora-entrada" /></label>
-    <label>Hora Salida: <input type="time" id="hora-salida" /></label>
-    <button id="guardar-hora">Guardar</button>
+  <!-- Time Input Modal -->
+  <div id="reloj-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+    <div class="bg-darker p-6 rounded-xl border border-primary max-w-md w-full mx-4 shadow-xl animate-fadeIn">
+      <h3 class="text-lg font-semibold mb-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+        Asignar Horario
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Hora Entrada:</label>
+          <input type="time" id="hora-entrada" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Hora Salida:</label>
+          <input type="time" id="hora-salida" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-3">
+        <button id="guardar-hora" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors glow-primary">
+          Guardar
+        </button>
+        <button onclick="document.getElementById('reloj-modal').style.display='none'" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+          Cancelar
+        </button>
+      </div>
+    </div>
   </div>
 
-  <div id="modal-fijo" class="modal-overlay">
-    <div class="modal-fijo-contenido">
-      <h3>Horario Fijo</h3>
-    
-      <div class="campo-horario">
-        <label>Entrada:</label>
-        <input type="time" id="entrada-fija" />
-      </div>
-      <div class="campo-horario">
-        <label>Salida:</label>
-        <input type="time" id="salida-fija" />
-      </div>
-    
-      <div style="margin-top: 15px; text-align: left;">
-        <p><strong>¿Dónde aplicar?</strong></p>
-
-        <label>
-          <input type="radio" name="modo-aplicacion" value="todos" />
-          Todos los días (incluye feriados)
-        </label><br />
+  <!-- Fixed Schedule Modal -->
+  <div id="modal-fijo" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+    <div class="bg-darker p-6 rounded-xl border border-primary max-w-md w-full mx-4 shadow-xl animate-fadeIn">
+      <h3 class="text-lg font-semibold mb-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+        Horario Fijo
+      </h3>
       
-        <label>
-          <input type="radio" name="modo-aplicacion" value="habiles" checked />
-          Solo días hábiles (lun–vie, sin feriados)
-        </label><br />
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Entrada:</label>
+          <input type="time" id="entrada-fija" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Salida:</label>
+          <input type="time" id="salida-fija" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+        
+        <div class="mt-4">
+          <p class="text-sm font-medium text-gray-300 mb-3">¿Dónde aplicar?</p>
+          
+          <div class="space-y-2">
+            <label class="flex items-center space-x-3">
+              <input type="radio" name="modo-aplicacion" value="todos" class="h-4 w-4 text-primary focus:ring-primary border-gray-600">
+              <span class="text-gray-300">Todos los días (incluye feriados)</span>
+            </label>
+            
+            <label class="flex items-center space-x-3">
+              <input type="radio" name="modo-aplicacion" value="habiles" checked class="h-4 w-4 text-primary focus:ring-primary border-gray-600">
+              <span class="text-gray-300">Solo días hábiles (lun–vie, sin feriados)</span>
+            </label>
+            
+            <label class="flex items-center space-x-3">
+              <input type="radio" name="modo-aplicacion" value="sinferiados" class="h-4 w-4 text-primary focus:ring-primary border-gray-600">
+              <span class="text-gray-300">Todos los días excepto feriados</span>
+            </label>
+            
+            <label class="flex items-center space-x-3">
+              <input type="radio" name="modo-aplicacion" value="habilesconferiados" class="h-4 w-4 text-primary focus:ring-primary border-gray-600">
+              <span class="text-gray-300">Solo días hábiles (lun–vie, incluyendo feriados)</span>
+            </label>
+            
+            <label class="flex items-center space-x-3">
+              <input type="radio" name="modo-aplicacion" value="todos-excepto" class="h-4 w-4 text-primary focus:ring-primary border-gray-600">
+              <span class="text-gray-300">A todos los días excepto:</span>
+            </label>
+            
+            <select id="dia-libre-semanal" class="ml-6 p-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+              <option value="">— Seleccionar día —</option>
+              <option value="0">Domingo</option>
+              <option value="1">Lunes</option>
+              <option value="2">Martes</option>
+              <option value="3">Miércoles</option>
+              <option value="4">Jueves</option>
+              <option value="5">Viernes</option>
+              <option value="6">Sábado</option>
+            </select>
+          </div>
+        </div>
+      </div>
       
-        <label>
-          <input type="radio" name="modo-aplicacion" value="sinferiados" />
-          Todos los días excepto feriados
-        </label><br />
-
-        <label>
-          <input type="radio" name="modo-aplicacion" value="habilesconferiados" />
-          Solo días hábiles (lun–vie, incluyendo feriados)
-        </label><br />
-
-        <label>
-          <input type="radio" name="modo-aplicacion" value="todos-excepto" />
-          A todos los días excepto:
-        </label>
-        <select id="dia-libre-semanal" style="margin-left: 8px;">
-          <option value="">— Seleccionar día —</option>
-          <option value="0">Domingo</option>
-          <option value="1">Lunes</option>
-          <option value="2">Martes</option>
-          <option value="3">Miércoles</option>
-          <option value="4">Jueves</option>
-          <option value="5">Viernes</option>
-          <option value="6">Sábado</option>
-        </select><br />
-      </div>
-    
-      <div class="botones-modal">
-        <button id="aplicar-fijo" class="btn-aplicar">Aplicar</button>
-        <button onclick="document.getElementById('modal-fijo').style.display='none'" class="btn-cancelar">Cancelar</button>
-      </div>
-    </div>
-  </div>
-  <div id="modal-confirmacion" class="modal-overlay">
-    <div class="modal-contenido">
-      <h3>¿Estás seguro de que deseas limpiar todos los horarios?</h3>
-      <div class="botones-modal">
-        <button id="confirmar-limpieza" class="btn-aplicar">Sí, limpiar</button>
-        <button id="cancelar-limpieza" class="btn-cancelar">Cancelar</button>
+      <div class="mt-6 flex justify-end gap-3">
+        <button id="aplicar-fijo" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors glow-primary">
+          Aplicar
+        </button>
+        <button onclick="document.getElementById('modal-fijo').style.display='none'" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+          Cancelar
+        </button>
       </div>
     </div>
   </div>
 
-  <div id="modal-vacaciones" class="modal-overlay">
-    <div class="modal-contenido">
-      <h3>Asignar Vacaciones</h3>
-
-      <div class="campo-horario">
-        <label>Empleado:</label>
-        <select id="select-empleado-vac">
-          <option value="all">— Todos —</option>
-          <!-- Aquí se inyectan las opciones de cada empleado -->
-        </select>
-      </div>
-
-      <div class="campo-horario">
-        <label>Desde:</label>
-        <input type="date" id="vac-inicio" />
-      </div>
-
-      <div class="campo-horario">
-        <label>Hasta:</label>
-        <input type="date" id="vac-fin" />
-      </div>
-
-      <div class="botones-modal">
-        <button id="confirmar-vacaciones" class="btn-aplicar">Asignar</button>
-        <button id="cancelar-vacaciones" class="btn-cancelar">Cancelar</button>
+  <!-- Confirmation Modal -->
+  <div id="modal-confirmacion" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+    <div class="bg-darker p-6 rounded-xl border border-primary max-w-md w-full mx-4 shadow-xl animate-fadeIn">
+      <h3 class="text-lg font-semibold mb-4 text-center text-gray-300">
+        ¿Estás seguro de que deseas limpiar todos los horarios?
+      </h3>
+      
+      <div class="mt-6 flex justify-center gap-3">
+        <button id="confirmar-limpieza" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors glow-primary">
+          Sí, limpiar
+        </button>
+        <button id="cancelar-limpieza" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+          Cancelar
+        </button>
       </div>
     </div>
   </div>
-  <div id="toast-container" style="
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    display: flex;
-    flex-direction: column-reverse;
-    gap: 8px;
-    z-index: 3000;
-  "></div>
 
-  
+  <!-- Vacation Modal -->
+  <div id="modal-vacaciones" class="fixed inset-0 flex items-center justify-center z-50 hidden modal-overlay">
+    <div class="bg-darker p-6 rounded-xl border border-primary max-w-md w-full mx-4 shadow-xl animate-fadeIn">
+      <h3 class="text-lg font-semibold mb-4 text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
+        Asignar Vacaciones
+      </h3>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Empleado:</label>
+          <select id="select-empleado-vac" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+            <option value="all">— Todos —</option>
+            <!-- Aquí se inyectan las opciones de cada empleado -->
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Desde:</label>
+          <input type="date" id="vac-inicio" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Hasta:</label>
+          <input type="date" id="vac-fin" class="w-full p-2 rounded-lg bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-primary focus:border-transparent">
+        </div>
+      </div>
+      
+      <div class="mt-6 flex justify-end gap-3">
+        <button id="confirmar-vacaciones" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors glow-primary">
+          Asignar
+        </button>
+        <button id="cancelar-vacaciones" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600 transition-colors">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 flex flex-col-reverse gap-2 z-50"></div>
+
 
 
   <script src="horarios.js"></script>

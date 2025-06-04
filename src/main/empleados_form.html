@@ -1,82 +1,165 @@
 <!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Asignación de Turnos</title>
-    <link rel="stylesheet" href="style_empleados.css" />
-  </head>
-  <body>
-    <header>
-      <button id="volver" onclick="history.back()">←Volver</button>
-      <h1>Registrar Empleados</h1>
-    </header>
-    <main>
-      <div class="container">
-        <h2>Agregar Empleado</h2>
-        <form id="empleadoForm">
-          <input
-            type="text"
-            id="nombres"
-            placeholder="Nombres"
-            required
-          />
-          <input
-            type="text"
-            id="apellidoPaterno"
-            placeholder="Apellido Paterno"
-            required
-          />
-          <input
-            type="text"
-            id="apellidoMaterno"
-            placeholder="Apellido Materno"
-            required
-          />
-          <input
-            type="text"
-            id="empId"
-            placeholder="ID Empleado"
-            required
-          />
-
-          <!-- Nuevo campo RUT -->
-          <input
-            type="text"
-            id="rut"
-            placeholder="RUT (12.345.678-5)"
-            required
-            pattern="^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$"
-            title="Formato: 12.345.678-5"
-          />
-
-          <!-- Nuevo campo Teléfono -->
-          <input
-            type="tel"
-            id="telefono"
-            placeholder="Teléfono"
-            required
-            pattern="^[0-9]{7,15}$"
-            title="Solo dígitos, entre 7 y 15 caracteres"
-          />
-
-          <!-- Nuevo campo Email (opcional) -->
-          <input
-            type="email"
-            id="email"
-            placeholder="Email (opcional)"
-          />
-
-          <button type="submit" id="btnGuardar">Guardar datos</button>
-          <button type="button" id="btnRegistrarRostro">
-            Registrar rostro (embeddings)
+    <html lang="es">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Asignación de Turnos</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+        <link rel="stylesheet" href="style_empleados.css" />
+        <script>
+          tailwind.config = {
+            theme: {
+              extend: {
+                colors: {
+                  primary: '#6c5ce7',
+                  secondary: '#a29bfe',
+                  dark: '#2d3436',
+                  light: '#f5f6fa',
+                  accent: '#fd79a8',
+                }
+              }
+            }
+          }
+        </script>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      </head>
+      <body class="bg-dark text-light min-h-screen">
+        <header class="bg-darker p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 z-10">
+          <button  id="volver" 
+          onclick="history.back()"  class="flex items-center text-secondary hover:text-primary transition-colors glow-secondary px-4 py-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+            
+            Volver
           </button>
-        </form>
-      </div>
-    </main>
-
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="empleados_form.js"></script>
-  </body>
-</html>
+          <h1 class="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+            Registrar Empleado
+          </h1>
+          <div class="w-24"></div> <!-- Spacer for balance -->
+        </header>
+    
+        <main class="container mx-auto px-4 py-8">
+          <div class="bg-dark-transparent backdrop-blur-sm rounded-xl shadow-xl overflow-hidden border border-primary max-w-3xl mx-auto">
+            <div class="bg-primary bg-opacity-10 p-6 border-b border-primary">
+              <h2 class="text-xl font-semibold text-light">Agregar Empleado</h2>
+            </div>
+            
+            <form id="empleadoForm" class="p-6 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="nombres" class="block text-sm font-medium text-secondary mb-1">Nombres</label>
+                  <input
+                    type="text"
+                    id="nombres"
+                    placeholder="Ingrese nombres"
+                    required
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label for="apellidoPaterno" class="block text-sm font-medium text-secondary mb-1">Apellido Paterno</label>
+                  <input
+                    type="text"
+                    id="apellidoPaterno"
+                    placeholder="Ingrese apellido paterno"
+                    required
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label for="apellidoMaterno" class="block text-sm font-medium text-secondary mb-1">Apellido Materno</label>
+                  <input
+                    type="text"
+                    id="apellidoMaterno"
+                    placeholder="Ingrese apellido materno"
+                    required
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label for="empId" class="block text-sm font-medium text-secondary mb-1">ID Empleado</label>
+                  <input
+                    type="text"
+                    id="empId"
+                    placeholder="Ingrese ID de empleado"
+                    required
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label for="rut" class="block text-sm font-medium text-secondary mb-1">RUT</label>
+                  <input
+                    type="text"
+                    id="rut"
+                    placeholder="12.345.678-5"
+                    required
+                    pattern="^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$"
+                    title="Formato: 12.345.678-5"
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div>
+                  <label for="telefono" class="block text-sm font-medium text-secondary mb-1">Teléfono</label>
+                  <input
+                    type="tel"
+                    id="telefono"
+                    placeholder="Ingrese teléfono"
+                    required
+                    pattern="^[0-9]{7,15}$"
+                    title="Solo dígitos, entre 7 y 15 caracteres"
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+                
+                <div class="md:col-span-2">
+                  <label for="email" class="block text-sm font-medium text-secondary mb-1">Email (opcional)</label>
+                  <input
+                    type="email"
+                    id="email"
+                    placeholder="Ingrese email"
+                    class="w-full px-4 py-3 bg-dark border border-primary rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-secondary text-light transition-all glow-primary hover:glow-primary"
+                  />
+                </div>
+              </div>
+              
+              <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                <button
+                  type="submit"
+                  id="btnGuardar"
+                  class="flex-1 px-6 py-3 bg-primary hover:bg-primary-dark text-white font-medium rounded-lg transition-all glow-primary hover:glow-primary flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                  </svg>
+                  Guardar datos
+                </button>
+                
+                <button
+                  type="button"
+                  id="btnRegistrarRostro"
+                  class="flex-1 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-medium rounded-lg transition-all glow-accent hover:glow-accent flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                  </svg>
+                  Registrar rostro
+                </button>
+              </div>
+            </form>
+          </div>
+        </main>
+    
+        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+        <script src="empleados_form.js"></script>
+      </body>
+    </html>

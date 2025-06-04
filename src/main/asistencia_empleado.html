@@ -2,62 +2,189 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Asistencias</title>
-  <link rel="stylesheet" href="asistencia_empleado.css">
-</head>
-<body>
-  <!-- Cabecera con botón volver y título de la página -->
-  <header>
-    <button id="volver" onclick="history.back()">← Volver</button>
-    <h1>Gestionar Asistencias</h1>
-  </header>
-
-  <!-- Controles para filtros y reporte PDF -->
-  <div class="controles navbar-horarios" style="gap:12px; align-items: center;">
-    <label>
-      Desde: <input type="date" id="date-from" class="btn-horario-fijo" />
-    </label>
-    <label>
-      Hasta: <input type="date" id="date-to" class="btn-horario-fijo" />
-    </label>
-     <button id="semana-prev" title="Semana anterior">⬅️</button>
-     <button id="semana-next" title="Semana siguiente">➡️</button>
-    <button id="btn-pdf" class="btn-horario-fijo">Generar PDF</button>
-    <button id="refresh-btn" class="btn-horario-fijo">Actualizar</button>
-  </div>
   
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestionar Asistencias</title>
+  <link rel="stylesheet" href="asistencia_empleado.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6c5ce7',
+            secondary: '#a29bfe',
+            dark: '#2d3436',
+            light: '#f5f6fa',
+            accent: '#fd79a8',
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <!-- FileSaver (para saveAs) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-darker p-4 border-b border-gray-700 flex items-center justify-between sticky top-0 z-10">
+      <button id="volver" onclick="history.back()" class="flex items-center text-secondary hover:text-primary transition-colors glow-secondary px-4 py-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Volver
+      </button>
+      <h1 class="text-xl font-semibold text-center text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+        Gestionar Asistencias
+      </h1>
+      <div class="w-24"></div> <!-- Spacer for balance -->
+    </header>
 
-  <!-- Info de empleado/periodo seleccionado -->
-  <div id="info-filtro" style="margin-bottom:10px; font-weight:bold;"></div>
-
-  <div class="layout">
-    <!-- Columna de empleados con opción 'Todos' -->
-    <aside class="sidebar">
-      <ul id="empleados-list">
-        <!-- Dinámico via JS -->
-      </ul>
-    </aside>
-
-    <!-- Panel principal: controles y tabla de asistencias -->
-    <main class="content">
-      <div id="asistencias-panel" class="tabla-scroll">
-        <!-- Aquí se renderiza la tabla según la vista -->
+    <!-- Navigation -->
+    <nav class="bg-darker p-4 border-b border-gray-700 flex flex-wrap gap-2 justify-center sticky top-16 z-10">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center space-x-2">
+          <label class="text-secondary">Buscar fecha:</label>
+          <input type="date" id="date-from" class="bg-dark border border-primary/30 text-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50 glow-secondary hover:glow-primary transition-all">
+        </div>
       </div>
-    </main>
-  </div>
+      
+      <div class="flex items-center gap-2">
+        <button id="semana-prev" title="Semana anterior" class="p-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all glow-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <button id="semana-next" title="Semana siguiente" class="p-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all glow-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button id="btn-pdf" class="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dark transition-all flex items-center gap-2 glow-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+          </svg>
+          Exportar
+        </button>
+        <button id="refresh-btn" class="px-4 py-2 rounded-lg bg-primary-transparent border border-primary text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-2 glow-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+          </svg>
+          Actualizar
+        </button>
+      </div>
+    </nav>
 
-  <!-- Modal para detalles de asistencia -->
-  <div id="modal-detalle" class="modal-overlay" style="display:none;">
-    <div class="modal-contenido">
-      <h3 id="modal-titulo">Detalle de asistencia</h3>
-      <div id="modal-detalle-body"></div>
-      <div class="botones-modal">
-        <button id="cerrar-modal" class="btn-cancelar">Cerrar</button>
+    <div id="info-filtro" class="bg-darker px-4 py-2 text-secondary border-b border-gray-700"></div>
+      <!-- Attendance Table -->
+      <main class="flex-1 bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div class="p-4 bg-gray-700 border-b border-gray-600">
+          <h2 class="text-lg font-semibold text-indigo-100">Asistencias</h2>
+        </div>
+        <div id="asistencias-panel" class="overflow-x-auto">
+          <table id="tabla-asistencias" class="w-full">
+            <thead id="asistencias-thead" class="bg-gray-700 text-gray-300">
+              <tr>
+                <th class="px-4 py-3 text-left">Empleado</th>
+                <th class="px-4 py-3 text-center">Lun</th>
+                <th class="px-4 py-3 text-center">Mar</th>
+                <th class="px-4 py-3 text-center">Mié</th>
+                <th class="px-4 py-3 text-center">Jue</th>
+                <th class="px-4 py-3 text-center">Vie</th>
+                <th class="px-4 py-3 text-center">Sáb</th>
+                <th class="px-4 py-3 text-center">Dom</th>
+              </tr>
+            </thead>
+            <tbody id="asistencias-tbody" class="divide-y divide-gray-700">
+              <!-- Example row -->
+              <tr class="hover:bg-gray-750 transition-colors">
+                <td class="px-4 py-3 text-gray-100">Juan Pérez</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center text-red-400">❌</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center text-red-400">❌</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+              </tr>
+              <tr class="hover:bg-gray-750 transition-colors">
+                <td class="px-4 py-3 text-gray-100">María González</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center vacaciones">Vacaciones</td>
+                <td class="px-4 py-3 text-center vacaciones">Vacaciones</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+                <td class="px-4 py-3 text-center dia-feriado">Feriado</td>
+                <td class="px-4 py-3 text-center text-green-400">✔️</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  
+    <!-- Modal for Attendance Details -->
+    <div id="modal-detalle" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 modal-overlay" style="display:none;">
+      <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-md animate-fadeIn">
+        <div class="p-6">
+          <h3 id="modal-titulo" class="text-xl font-bold text-indigo-100 mb-4">Detalle de asistencia</h3>
+          <div id="modal-detalle-body" class="text-gray-300 mb-6">
+            <!-- Content will be injected here -->
+          </div>
+          <div class="flex justify-end">
+            <button id="cerrar-modal" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-sm font-medium transition-colors">
+              Cerrar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-
+    <div id="modal-exportar" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+      <div class="bg-darker rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-semibold text-primary mb-4">Exportar Asistencias</h3>
+        
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label class="text-gray-300 block">Tipo de Documento</label>
+            <select id="export-type" class="w-full bg-dark border border-primary/30 text-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50">
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+              <option value="svg">SVG</option>
+            </select>
+          </div>
+    
+          <div class="space-y-2">
+            <label class="text-gray-300 block">Rango de Fechas</label>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-gray-400 text-sm">Desde</label>
+                <input type="date" id="export-date-from" class="w-full bg-dark border border-primary/30 text-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50">
+              </div>
+              <div>
+                <label class="text-gray-400 text-sm">Hasta</label>
+                <input type="date" id="export-date-to" class="w-full bg-dark border border-primary/30 text-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50">
+              </div>
+            </div>
+          </div>
+        </div>
+    
+        <div class="flex justify-end space-x-3 mt-6">
+          <button id="cancelar-exportar" class="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 transition-colors">
+            Cancelar
+          </button>
+          <button id="confirmar-exportar" class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors">
+            Exportar
+          </button>
+        </div>
+      </div>
+    </div>
   <script src="asistencia_empleado.js"></script>
 </body>
 </html>

@@ -85,6 +85,8 @@ const btnAplicarFijo = document.getElementById('aplicar-fijo');
 let empleados = [];
 let celdaSeleccionada = null;
 
+
+
 async function obtenerEmpleados() {
   const token = sessionStorage.getItem("ID_TOKEN");
   if (!token) {
@@ -98,15 +100,64 @@ async function obtenerEmpleados() {
     });
 
     if (!res.ok) throw new Error("No autorizado o error en el servidor");
+    
+    const data = await res.json();
+    empleados = data;
 
-    empleados = await res.json();
+    // Mantener la estructura del contenedor principal
+    const mainContent = document.querySelector('main');
+    mainContent.className = 'flex-1 p-4 overflow-x-auto';
+
+    const contenedorTabla = document.querySelector('main > div');
+    contenedorTabla.className = 'bg-darker rounded-xl border border-gray-700 overflow-hidden';
+    
+    // Configurar la tabla y su encabezado
+    const tabla = document.getElementById('tabla-turnos');
+    tabla.className = 'w-full table-fixed';
+    
+    const thead = tabla.querySelector('thead');
+    thead.className = 'bg-gray-800';
+    
+    // Limpiar y configurar el tbody
+    const tbody = document.getElementById('cuerpo-tabla');
+    tbody.className = 'divide-y divide-gray-700';
+    tbody.innerHTML = '';
+    
+    // Generar filas para cada empleado
+    empleados.forEach(empleado => {
+      const fila = document.createElement('tr');
+      fila.className = 'divide-x divide-gray-700 hover:bg-gray-800 transition-colors';
+      
+      // Celda del nombre
+      const celdaNombre = document.createElement('td');
+      celdaNombre.className = 'p-3 font-medium text-gray-300 w-1/6';
+      celdaNombre.textContent = empleado.nombre;
+      fila.appendChild(celdaNombre);
+      
+      // Celdas de los días
+      for (let i = 0; i < 7; i++) {
+        const celdaDia = document.createElement('td');
+        celdaDia.className = 'p-3 text-center w-1/7';
+        celdaDia.innerHTML = `
+          <div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+            <span class="text-xs text-gray-400">—</span>
+          </div>
+        `;
+        fila.appendChild(celdaDia);
+      }
+      
+      tbody.appendChild(fila);
+    });
+
+    // Llenar los selectores de empleados en los modales
     llenarSelectVacaciones();
-    construirTabla();
+
   } catch (err) {
     console.error("Error al obtener empleados:", err);
-    cuerpoTabla.innerHTML = `<tr><td colspan="${dias.length + 1}">Error al cargar empleados</td></tr>`;
+    showToast('Error al cargar empleados', "error");
   }
 }
+
 function toLocalISO(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -140,22 +191,28 @@ async function cargarSemana(fechaLunes) {
 function pintarTablaConTurnos() {
   cuerpoTabla.innerHTML = "";
 
+  // Configurar la tabla principal
+  const tabla = document.getElementById('tabla-turnos');
+  tabla.className = 'w-full table-fixed';
+
   // Reconstruir encabezado
   const encabezado = document.querySelector("#tabla-turnos thead tr");
-  encabezado.innerHTML = "<th>Empleado</th>";
+  encabezado.innerHTML = "<th class='p-3 text-left font-medium text-primary w-1/6'>Empleado</th>";
   dias.forEach(d => {
     const th = document.createElement("th");
+    th.className = 'p-3 text-center font-medium w-1/7';
     th.textContent = d.texto;
     encabezado.appendChild(th);
   });
 
-  // Recorrer cada empleado
   empleados.forEach(emp => {
     const fila = document.createElement("tr");
+    fila.className = 'divide-x divide-gray-700 hover:bg-gray-800 transition-colors';
 
     // Celda de nombre
     const tdNombre = document.createElement("td");
     const primerNombre = emp.nombre?.split(" ")[0] || "SinNombre";
+    tdNombre.className = 'p-3 font-medium text-gray-300 w-1/6';
     tdNombre.textContent = primerNombre;
     tdNombre.dataset.empleadoId = emp.empId;
     fila.appendChild(tdNombre);
@@ -163,36 +220,39 @@ function pintarTablaConTurnos() {
     // Sus 7 celdas
     dias.forEach(d => {
       const celda = document.createElement("td");
+      celda.className = 'p-3 text-center w-1/7';
       celda.dataset.empleadoId = emp.empId;
-      celda.dataset.fecha      = d.iso;        // ← aquí ya tienes el YYYY-MM-DD correcto
+      celda.dataset.fecha = d.iso;
 
-      // Lookup directo con ese mismo d.iso
       const turno = turnosSemana[emp.empId]?.[d.iso];
       if (turno) {
         if (turno.tipo === "turno") {
-          celda.textContent = `${turno.entrada}/${turno.salida}`;
+          celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+            <span class="text-xs text-gray-400">${turno.entrada}/${turno.salida}</span>
+          </div>`;
         } else if (turno.tipo === "vacaciones") {
-          celda.textContent = "Vacaciones";
+          celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+            <span class="text-xs text-gray-400">Vacaciones</span>
+          </div>`;
           celda.classList.add("vacaciones");
-        } else {
-          celda.textContent = "—";
         }
       } else {
-        celda.textContent = "—";
+        celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+          <span class="text-xs text-gray-400">-</span>
+        </div>`;
       }
 
-      // Marcar feriados/domingo
+      // Resto del código para feriados y eventos...
       const esFeriado = feriados.includes(d.iso);
       if (d.esDomingo || esFeriado) {
         celda.classList.add("dia-feriado");
         celda.title = esFeriado ? "Feriado" : "Domingo";
       }
 
-      // Click para editar
       celda.addEventListener('click', () => {
         celdaSeleccionada = celda;
         inputEntrada.value = '';
-        inputSalida.value  = '';
+        inputSalida.value = '';
         modal.style.display = 'block';
       });
 
@@ -210,13 +270,10 @@ async function actualizarSemana() {
   ajustarInicioASemanaLunes();
   generarDiasSemana();
 
-  // 1) recarga el listado de empleados (si fuera necesario)
-  await obtenerEmpleados();
-
-  // 2) recarga los turnos **de la nueva semana**
+  // 1) recarga los turnos de la nueva semana
   await cargarSemana(inicioSemana);
 
-  // 3) pinta la tabla combinando turnos + empleados
+  // 2) pinta la tabla combinando turnos + empleados
   pintarTablaConTurnos();
 }
 function pad(n) {
@@ -309,7 +366,12 @@ btnGuardar.addEventListener('click', () => {
     return;
   }
 
-  celdaSeleccionada.textContent = `${entrada}/${salida}`;
+  celdaSeleccionada.classList.remove('vacaciones');
+  celdaSeleccionada.innerHTML = `
+    <div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+      <span class="text-xs text-gray-400">${entrada}/${salida}</span>
+    </div>
+  `;
   modal.style.display = 'none';
 });
 
@@ -393,15 +455,119 @@ btnAplicarFijo.addEventListener('click', () => {
       (modo === "sinferiados" && esFeriado) || 
       (modo === "habiles" && (diaNum < 1 || diaNum > 5 || esFeriado));
   
-    if (forzarLibre) {
-      celda.textContent = "—";
-    } else if (aplicar) {
-      celda.textContent = `${entrada}/${salida}`;
-    }
+      if (forzarLibre) {
+        celda.classList.remove('vacaciones');
+        celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+          <span class="text-xs text-gray-400">-</span>
+        </div>`;
+      } else if (aplicar) {
+        celda.classList.remove('vacaciones');
+        celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+          <span class="text-xs text-gray-400">${entrada}/${salida}</span>
+        </div>`;
+      }
   });
   
   modalFijo.style.display = 'none';
 });
+function exportarTablaTurnosAPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'l',  // Landscape
+    unit: 'pt',        // Unidades en puntos (≈1pt = 1.333px)
+    format: 'a4'
+  });
+
+  const margin = 40;
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // 1) Determinar la fecha del lunes de esta semana en formato DD/MM/YYYY:
+  const lunes = new Date(inicioSemana);
+  const d = String(lunes.getDate()).padStart(2, '0');
+  const m = String(lunes.getMonth() + 1).padStart(2, '0');
+  const y = lunes.getFullYear();
+  const textoSemana = `${d}/${m}/${y}`;
+
+  // 2) Dibujar el título centrado
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(
+    `Turno Semanal Semana: ${textoSemana}`,
+    pageWidth / 2,
+    margin,
+    { align: 'center' }
+  );
+
+  // 3) Opcional: si quieres una línea secundaria con el rango completo
+  // const domingo = new Date(lunes.getTime() + 6 * 24*60*60*1000);
+  // const d2 = String(domingo.getDate()).padStart(2, '0');
+  // const m2 = String(domingo.getMonth() + 1).padStart(2, '0');
+  // const y2 = domingo.getFullYear();
+  // doc.setFontSize(10);
+  // doc.setFont('helvetica', 'normal');
+  // doc.text(
+  //   `(${textoSemana} – ${d2}/${m2}/${y2})`,
+  //   pageWidth / 2,
+  //   margin + 20,
+  //   { align: 'center' }
+  // );
+
+  // 4) Agregar un pequeño espacio antes de la tabla
+  const startY = margin + 40;
+
+  // 5) Usar autoTable para volcar #tabla-turnos con estilos mejorados
+  doc.autoTable({
+    html: '#tabla-turnos',    // Selector de la tabla HTML
+    startY: startY,
+    theme: 'grid',            // Muestra bordes completos (grid)
+    styles: {
+      fontSize: 8,            // Tamaño de letra dentro de la tabla
+      cellPadding: 4,         // Espacio interno de cada celda
+      valign: 'middle',       // Centrar verticalmente el texto en celdas
+      overflow: 'linebreak',  // Si el texto es muy extenso, hace salto de línea
+      halign: 'center'        // Por defecto, centrar horizontalmente
+    },
+    headStyles: {
+      fillColor: [52, 58, 64],  // Gris oscuro de fondo en encabezados
+      textColor: 255,           // Texto blanco en encabezados
+      fontStyle: 'bold',
+      halign: 'center'          // Título de columna centrado
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245] // Filas alternas en un gris muy claro
+    },
+    columnStyles: {
+      0: {                    // Columna “Empleado”
+        cellWidth: 100,
+        halign: 'left',       // Nombre del empleado alineado a la izquierda
+        fontStyle: 'bold'
+      },
+      // Para las demás columnas (1..7), dejar ancho automático. 
+      // Si quieres que todas tengan igual ancho, podrías hacer algo como:
+      // 1: { cellWidth: (pageWidth - margin*2 - 100) / 7 },
+      // 2: { cellWidth: (pageWidth - margin*2 - 100) / 7 },
+      // ...
+      // Pero normalmente el tema 'grid' ajusta la anchura según contenido.
+    },
+    didDrawPage: (data) => {
+      // Si la tabla ocupa varias páginas, repetir el título en cada página
+      if (data.pageNumber > 1) {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(
+          `Turno Semanal Semana: ${textoSemana}`,
+          pageWidth / 2,
+          margin - 10,
+          { align: 'center' }
+        );
+      }
+    }
+  });
+
+  // 6) Guardar / Descargar PDF
+  doc.save(`turnos_semana_${textoSemana.replace(/\//g, '-')}.pdf`);
+}
+
 
 const btnLimpiar = document.getElementById("limpiar-horarios");
 const modalConfirm = document.getElementById("modal-confirmacion");
@@ -419,7 +585,9 @@ btnCancelar.addEventListener("click", () => {
 btnConfirmar.addEventListener("click", () => {
   const celdas = document.querySelectorAll('#cuerpo-tabla td:not(:first-child)');
   celdas.forEach(celda => {
-    celda.textContent = "—";
+    celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+      <span class="text-xs text-gray-400">-</span>
+    </div>`;
   });
   modalConfirm.style.display = "none";
 });
@@ -433,8 +601,9 @@ document.getElementById("semana-siguiente").addEventListener("click", () => {
   actualizarSemana();
 });
 document.getElementById('exportar-pdf').addEventListener('click', () => {
-  window.print();
+  exportarTablaTurnosAPDF();
 });
+
 
 // Referencias al modal de vacaciones y sus botones
 const btnVacaciones     = document.getElementById('btn-asignar-vacaciones');

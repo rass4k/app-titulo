@@ -9,11 +9,15 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'FacePulse',
+        authors: 'Your Name',
+        exe: 'FacePulse.exe'
+      },
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
+      platforms: ['win32'],
     },
     {
       name: '@electron-forge/maker-deb',
