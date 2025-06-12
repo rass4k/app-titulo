@@ -10,7 +10,8 @@ from deepface import DeepFace
 # --------------------------
 # CONFIGURACIÓN
 # --------------------------
-BASE_DATOS = "usuarios_facenet.json"  # Archivo JSON con usuarios (ahora con embeddings de FaceNet)
+BASE_DATOS = "usuarios_facenet.json"
+
 SMOOTH_FACTOR = 0.9
 
 # Parámetros para conteo de parpadeos
@@ -20,8 +21,8 @@ contador_pestaneos = 0
 frames_contados = 0
 
 # Parámetros para comparación de embeddings de FaceNet
-# Umbral de reconocimiento: ajustar según pruebas (usualmente entre 8 y 12)
-UMBRAL_RECONOCIMIENTO = 10  
+# Ajustar según pruebas (usualmente entre 0.6 y 0.8)
+UMBRAL_RECONOCIMIENTO = 0.7
 
 # Dimensiones del recuadro y factor de tamaño de la cara
 AREA_RECUADRO = 150  # El recuadro mide 2*AREA_RECUADRO en ancho y alto
@@ -32,7 +33,7 @@ waveCenter = None  # Se inicializa en el loop
 wave_speed = 20    # píxeles por frame
 waveRadius = 150   # ancho de la ola
 highlight_color = (255, 255, 255)  # color blanco
-color_neon = (57, 255, 20)           # verde neón
+color_neon = (57, 255, 20)         # verde neón
 alpha = 0.3
 
 # Landmarks relevantes de Face Mesh (para parpadeos y detección de mirada)
@@ -43,11 +44,8 @@ LOOK_THRESHOLD = 20  # Para detectar si se mira a la izquierda o derecha
 
 # Máquina de estados para guiar al usuario
 ESTADO_INICIAL = 0    # "Alinea tu cara"
-# Variables para mostrar el mensaje sobre la cabeza de forma temporal
-dibujar_mensaje = None
-mensaje_activo_hasta = 0.0
-ESTADO_MIRAR_IZQ = 1   # "Mira a la izquierda"
-ESTADO_MIRAR_DER = 2   # "Mira a la derecha"
+ESTADO_MIRAR_IZQ = 1  # "Mira a la izquierda"
+ESTADO_MIRAR_DER = 2  # "Mira a la derecha"
 ESTADO_COMPLETADO = 3  # "Proceso completado"
 estado = ESTADO_INICIAL
 
@@ -58,12 +56,20 @@ mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
 
 # --------------------------
+# VARIABLES PARA MENSAJE TEMPORAL
+# --------------------------
+mensaje_actual = None
+mensaje_color = (0, 255, 0)
+mensaje_tiempo_inicio = 0.0
+MENSAJE_DURACION = 2.0  # segundos que quieres mostrar el mensaje
+
+# --------------------------
 # FUNCIONES DE UTILIDAD
 # --------------------------
 def improve_lighting(img_bgr,
                      clip_limit=2.0,
                      tile_grid=(8, 8),
-                     target_mean=0.5): 
+                     target_mean=0.5):
     # 1) CLAHE en canal L de LAB
     lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
@@ -92,26 +98,18 @@ def normalize_embedding(emb):
     norm = np.linalg.norm(arr)
     return arr / norm if norm > 0 else arr
 
-def normalizar_landmarks(landmarks):
-    """
-    Centra y escala los landmarks (array de forma (N,2) o (N,3)) para que tengan media=0 y desvío=1.
-    """
-    arr = np.array(landmarks, dtype=np.float32)
-    centro = np.mean(arr, axis=0)
-    arr -= centro
-    desv = np.std(arr)
-    if desv > 0:
-        arr /= desv
-    return arr
-
 def cargar_usuarios():
     """
     Carga la lista de usuarios (embeddings) desde BASE_DATOS.
     """
     if not os.path.exists(BASE_DATOS):
         return []
-    with open(BASE_DATOS, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(BASE_DATOS, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print("Error al leer base de datos:", e)
+        return []
 
 def crop_face_from_frame(frame, landmarks, box_padding=20):
     """
@@ -127,46 +125,6 @@ def crop_face_from_frame(frame, landmarks, box_padding=20):
     return frame[y_min:y_max, x_min:x_max]
 
 # --------------------------
-# RECONOCIMIENTO FACIAL CON FACENET
-# --------------------------
-def reconocer_facenet(rostro_img):
-    """
-    Recibe la imagen recortada del rostro actual (rostro_img) y extrae su embedding usando FaceNet a través de DeepFace.
-    Compara dicho embedding con los embeddings guardados en BASE_DATOS.
-    Retorna (nombre_usuario, distancia_minima) o (None, distancia) si no se reconoce.
-    """
-    usuarios = cargar_usuarios()
-    if len(usuarios) == 0:
-        print("No hay usuarios registrados en la base de datos.")
-        return None, None
-
-    try:
-        resultado = DeepFace.represent(
-            img_path=rostro_img,
-            model_name="Facenet",
-            enforce_detection=False
-        )
-    except Exception as e:
-        print("Error al extraer el embedding:", e)
-        return None, None
-
-    embedding_actual = np.array(resultado[0]["embedding"])
-    mejor_distancia = float("inf")
-    mejor_usuario = None
-
-    for usuario in usuarios:
-        emb_guardado = np.array(usuario["embedding_facial"])
-        distancia = np.linalg.norm(embedding_actual - emb_guardado)
-        if distancia < mejor_distancia:
-            mejor_distancia = distancia
-            mejor_usuario = usuario["nombre"]
-
-    if mejor_distancia < UMBRAL_RECONOCIMIENTO:
-        return mejor_usuario, mejor_distancia
-    else:
-        return None, mejor_distancia
-
-# --------------------------
 # FUNCIONES AUXILIARES (EAR, detección de mirada, etc.)
 # --------------------------
 def calcular_EAR(coords):
@@ -176,6 +134,8 @@ def calcular_EAR(coords):
     vert_1 = dist.euclidean(coords[1], coords[5])
     vert_2 = dist.euclidean(coords[2], coords[4])
     horiz  = dist.euclidean(coords[0], coords[3])
+    if horiz == 0:
+        return 0.0
     return (vert_1 + vert_2) / (2.0 * horiz)
 
 def promedio_landmarks(landmarks, indices):
@@ -214,21 +174,20 @@ def enviar_embedding_a_electron(embedding_vector):
     line = sys.stdin.readline().strip()
     if not line:
         return None, None
-    data = json.loads(line)
-    return data.get("nombre"), data.get("mensaje")
-
-
-mensaje_actual = None
-mensaje_color = (0, 255, 0)
-mensaje_tiempo_inicio = 0
-MENSAJE_DURACION = 2  # segundos que quieres mostrar el mensaje
+    try:
+        data = json.loads(line)
+        return data.get("nombre"), data.get("mensaje")
+    except:
+        return None, None
 
 def main():
     global estado, waveCenter, landmarks_suavizados, contador_pestaneos, frames_contados
     global mensaje_actual, mensaje_color, mensaje_tiempo_inicio
 
     cap = cv2.VideoCapture(0)  # Ajusta a tu cámara (0 o 1)
-    
+    if not cap.isOpened():
+        print("No se pudo abrir la cámara")
+        return
 
     waveCenter = None
 
@@ -239,16 +198,17 @@ def main():
     ) as face_mesh:
         while True:
             success, frame = cap.read()
-            frame = cv2.flip(frame, 1)
             if not success:
                 break
 
+            frame = cv2.flip(frame, 1)
             h, w = frame.shape[:2]
             centro_x, centro_y = w // 2, h // 2
 
             if waveCenter is None:
                 waveCenter = w
 
+            # Convertir y procesar landmarks
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = face_mesh.process(frame_rgb)
             overlay = np.zeros_like(frame)
@@ -276,16 +236,33 @@ def main():
                 if dist_centro < AREA_RECUADRO and face_big_enough:
                     recuadro_color = (0, 255, 0)  # verde
 
-                    # Calcular EAR para parpadeo
-                    ear_izq = calcular_EAR(landmarks_suavizados[LEFT_EYE][:, :2])
-                    ear_der = calcular_EAR(landmarks_suavizados[RIGHT_EYE][:, :2])
-                    ear_avg = (ear_izq + ear_der) / 2.0
+                    # Máquina de estados para instrucciones
+                    mirada = detectar_mirada(landmarks_suavizados)
+                    if estado == ESTADO_INICIAL:
+                        if mirada == 'center':
+                            estado = ESTADO_MIRAR_IZQ
+                    elif estado == ESTADO_MIRAR_IZQ:
+                        if mirada == 'left':
+                            estado = ESTADO_MIRAR_DER
+                    elif estado == ESTADO_MIRAR_DER:
+                        if mirada == 'right':
+                            estado = ESTADO_COMPLETADO
 
-                    if ear_avg < UMBRAL_EAR:
-                        frames_contados += 1
+                    # Solo contar parpadeos si ya estamos en ESTADO_COMPLETADO y la cara está centrada
+                    if estado == ESTADO_COMPLETADO and mirada == 'center':
+                        # Calcular EAR para parpadeo
+                        ear_izq = calcular_EAR(landmarks_suavizados[LEFT_EYE][:, :2])
+                        ear_der = calcular_EAR(landmarks_suavizados[RIGHT_EYE][:, :2])
+                        ear_avg = (ear_izq + ear_der) / 2.0
+
+                        if ear_avg < UMBRAL_EAR:
+                            frames_contados += 1
+                        else:
+                            if frames_contados >= FRAMES_CONSECUTIVOS:
+                                contador_pestaneos += 1
+                            frames_contados = 0
                     else:
-                        if frames_contados >= FRAMES_CONSECUTIVOS:
-                            contador_pestaneos += 1
+                        # Si no está en ESTADO_COMPLETADO o no está centrado, reiniciar conteo de parpadeos
                         frames_contados = 0
 
                     # Dibujar la malla con efecto "ola"
@@ -303,21 +280,15 @@ def main():
                         else:
                             line_color = color_neon
                         cv2.line(overlay, pt1, pt2, line_color, 1)
-
-                    # Máquina de estados para instrucciones
-                    if estado == ESTADO_INICIAL:
-                        estado = ESTADO_MIRAR_IZQ
-                    elif estado == ESTADO_MIRAR_IZQ:
-                        if detectar_mirada(landmarks_suavizados) == 'left':
-                            estado = ESTADO_MIRAR_DER
-                    elif estado == ESTADO_MIRAR_DER:
-                        if detectar_mirada(landmarks_suavizados) == 'right':
-                            estado = ESTADO_COMPLETADO
                 else:
+                    # Si la cara no está centrada o no es lo suficientemente grande, reiniciar estados
                     frames_contados = 0
+                    contador_pestaneos = 0
                     estado = ESTADO_INICIAL
             else:
+                # No se detecta rostro, reiniciar estados
                 frames_contados = 0
+                contador_pestaneos = 0
                 estado = ESTADO_INICIAL
 
             # Mover la "ola" de derecha a izquierda
@@ -341,60 +312,46 @@ def main():
             elif estado == ESTADO_MIRAR_DER:
                 cv2.putText(frame_final, "Mira a la DERECHA", (30, 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-            if estado == ESTADO_COMPLETADO:
+            elif estado == ESTADO_COMPLETADO:
                 cv2.putText(frame_final, f'Pestañeos: {contador_pestaneos}', (30, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                ear_izq = calcular_EAR(landmarks_suavizados[LEFT_EYE][:, :2])
-                ear_der = calcular_EAR(landmarks_suavizados[RIGHT_EYE][:, :2])
-                ear_avg = (ear_izq + ear_der) / 2.0
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-                if ear_avg < UMBRAL_EAR:
-                    frames_contados += 1
-                    
-                else:
-                    if frames_contados >= FRAMES_CONSECUTIVOS:
-                        contador_pestaneos += 1
-                        
-                    frames_contados = 0
-            else:
-                # Si no está en estado COMPLETADO, resetea los contadores
-                frames_contados = 0
-                contador_pestaneos = 0
-            
-
-            # Cuando se han contado 5 parpadeos, se intenta reconocer al usuario mediante FaceNet
+            # Reconocimiento de FaceNet tras 5 parpadeos
             if contador_pestaneos >= 5 and landmarks_suavizados is not None:
-                # 1) Recorta la cara
                 rostro_recortado = crop_face_from_frame(frame, landmarks_suavizados)
-                rostro_recortado = improve_lighting(rostro_recortado) 
-                # 2) Extrae el embedding en vivo
-                resultado = DeepFace.represent(
-                    img_path=rostro_recortado,
-                    model_name="Facenet",
-                    enforce_detection=False
-                )
-                embedding = resultado[0]["embedding"]
-                embedding_norm = normalize_embedding(embedding)
+                rostro_recortado = improve_lighting(rostro_recortado)
 
-                nombre, mensaje = enviar_embedding_a_electron(embedding_norm.tolist())
-                mensaje_actual = mensaje
-                mensaje_color = (0, 255, 0) if nombre else (0, 0, 255)
-                mensaje_tiempo_inicio = time.time()
-                contador_pestaneos = 0
-                # Si hay mensaje y no ha pasado el tiempo, dibuja el mensaje
-                if mensaje_actual:
-                    if time.time() - mensaje_tiempo_inicio < MENSAJE_DURACION:
-                        cabeza_x = int(np.mean(landmarks_suavizados[:, 0]))
-                        cabeza_y = int(np.min(landmarks_suavizados[:, 1])) - 20
-                        cv2.putText(frame_final, mensaje_actual, (cabeza_x - 100, cabeza_y),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, mensaje_color, 2)
-                    else:
-                        mensaje_actual = None  # Elimina el mensaje cuando pasa el tiempo
+                try:
+                    resultado = DeepFace.represent(
+                        img_path=rostro_recortado,
+                        model_name="Facenet",
+                        enforce_detection=False
+                    )
+                    embedding = resultado[0]["embedding"]
+                    embedding_norm = normalize_embedding(embedding)
 
+                    nombre, mensaje = enviar_embedding_a_electron(embedding_norm.tolist())
+                    if mensaje:
+                        mensaje_actual = mensaje
+                        mensaje_color = (0, 255, 0) if nombre else (0, 0, 255)
+                        mensaje_tiempo_inicio = time.time()
+                except Exception as e:
+                    print("Error al extraer embedding:", e)
+                finally:
+                    # Reiniciar contadores y estado para no disparar inmediatamente otra vez
+                    contador_pestaneos = 0
+                    frames_contados = 0
+                    estado = ESTADO_INICIAL
 
-                # 5) Reinicia el contador para seguir reconociendo
-                contador_pestaneos = 0
-
+            # Dibujar texto temporal durante MENSAJE_DURACION segundos
+            if mensaje_actual is not None:
+                if time.time() - mensaje_tiempo_inicio < MENSAJE_DURACION:
+                    cabeza_x = int(np.mean(landmarks_suavizados[:, 0]))
+                    cabeza_y = int(np.min(landmarks_suavizados[:, 1])) - 20
+                    cv2.putText(frame_final, mensaje_actual, (cabeza_x - 100, cabeza_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, mensaje_color, 2)
+                else:
+                    mensaje_actual = None
 
             cv2.imshow("Secuencia: Alinear -> Izq -> Der", frame_final)
             if cv2.waitKey(5) & 0xFF == ord('q'):

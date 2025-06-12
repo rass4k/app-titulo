@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const TOKEN_KEY = 'ID_TOKEN';
+  const { jsPDF } = window.jspdf;
   const readToken = () => sessionStorage.getItem(TOKEN_KEY);
   const saveToken = t => sessionStorage.setItem(TOKEN_KEY, t);
 
@@ -22,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     diasSemana: [],    // ['2024-05-20', '2024-05-21', ...]
     horarios: {}       // horarios de la semana
   };
+  // Índice   empId → fecha ISO → [registros]
+  let idxAsis = {};
+
   const modalExportar = document.getElementById('modal-exportar');
   const btnExportar = document.getElementById('btn-pdf');
   const btnCancelarExport = document.getElementById('cancelar-exportar');
@@ -132,370 +136,519 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   async function generarPDF(_contenidoPorEmpleado, desde, hasta) {
-    // ——————————————————————————————————————————————————
-    // 1) Inicializar jsPDF (A4 retrato, unidades: pts)
-    // ——————————————————————————————————————————————————
-    const doc = new jspdf.jsPDF({
-      unit: 'pt',
-      format: 'a4',
-      orientation: 'portrait',
-    });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+    const margin = 30;
+    const pageWidth  = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
   
-    // ——————————————————————————————————————————————————
-    // 2) Constantes de diseño
-    // ——————————————————————————————————————————————————
-    const marginLeft   = 30;                                    // margen izquierdo
-    const pageWidth    = doc.internal.pageSize.getWidth();      // ≈ 595 pts
-    const pageHeight   = doc.internal.pageSize.getHeight();     // ≈ 842 pts
+    /* ── 1. Fechas legibles y objetos Date ───────────────────────── */
+    const [yD, mD, dD] = desde.split('-').map(Number);
+    const [yH, mH, dH] = hasta.split('-').map(Number);
+    const dispDesde = `${String(dD).padStart(2,'0')}/${String(mD).padStart(2,'0')}/${yD}`;
+    const dispHasta = `${String(dH).padStart(2,'0')}/${String(mH).padStart(2,'0')}/${yH}`;
+    const dDesde = new Date(yD, mD - 1, dD);
+    const dHasta = new Date(yH, mH - 1, dH);
   
-    const headerY      = 40;              // Y donde empieza el título
-    const titleFont    = 16;              // tamaño de fuente del título
-    const subtitleFont = 12;              // tamaño de fuente de subtítulos
-    const tableFont    = 12;              // tamaño de fuente del contenido de la tabla
-    const lineHeight   = 18;              // altura de cada fila (pts)
-  
-    // Columnas X fijas para cada celda
-    const colFecha   = marginLeft;
-    const colEntrada = marginLeft + 120;
-    const colSalida  = marginLeft + 260;
-    const colHoras   = marginLeft + 400;
-  
-    // Límites horizontales de la “caja” de la tabla
-    const tableLeft  = marginLeft - 5;
-    const tableRight = colHoras + 70;
-  
-    // Altura máxima en Y antes de salto de página interno
-    const maxContentY = pageHeight - 60;
-  
-  
-    // ——————————————————————————————————————————————————
-    // 3) Construir versiones “DD/MM/YYYY” de desde y hasta
-    // ——————————————————————————————————————————————————
-    const [yDesde, mDesde, dDesde] = desde.split('-').map(Number);
-    const [yHasta, mHasta, dHasta] = hasta.split('-').map(Number);
-    const displayDesde = `${String(dDesde).padStart(2, '0')}/${String(mDesde).padStart(2, '0')}/${yDesde}`;
-    const displayHasta = `${String(dHasta).padStart(2, '0')}/${String(mHasta).padStart(2, '0')}/${yHasta}`;
-  
-  
-    // ——————————————————————————————————————————————————
-    // 4) Convertir 'desde' y 'hasta' en objetos Date (hora local)
-    // ——————————————————————————————————————————————————
-    const desdeDate = new Date(yDesde, mDesde - 1, dDesde);
-    const hastaDate = new Date(yHasta, mHasta - 1, dHasta);
-  
-  
-    // ——————————————————————————————————————————————————
-    // 5) Agrupar state.asistencias por empId y por fecha "YYYY-MM-DD"
-    // ——————————————————————————————————————————————————
-    // Resultado: { empId: { "YYYY-MM-DD": [registros…], … }, … }
-    const asistenciasPorEmpleado = {};
-    state.asistencias.forEach(r => {
-      if (!r.empId || !r.timestamp || typeof r.timestamp._seconds !== 'number') return;
-      const ms = r.timestamp._seconds * 1000 + (r.timestamp._nanoseconds || 0) / 1e6;
-      const dObj = new Date(ms);
-      const iso = 
-        dObj.getFullYear() + '-' +
-        String(dObj.getMonth() + 1).padStart(2, '0') + '-' +
-        String(dObj.getDate()).padStart(2, '0');
-  
-      if (!asistenciasPorEmpleado[r.empId]) {
-        asistenciasPorEmpleado[r.empId] = {};
-      }
-      if (!asistenciasPorEmpleado[r.empId][iso]) {
-        asistenciasPorEmpleado[r.empId][iso] = [];
-      }
-      asistenciasPorEmpleado[r.empId][iso].push(r);
-    });
-  
-  
-    // ——————————————————————————————————————————————————
-    // 6) Contar cuántos días hay en el rango (para altura de tabla)
-    // ——————————————————————————————————————————————————
-    let contadorDias = 0;
-    for (let tmp = new Date(desdeDate); tmp <= hastaDate; tmp.setDate(tmp.getDate() + 1)) {
-      contadorDias++;
+    /* ── 2. Array exacto de días del rango ───────────────────────── */
+    const diasRango = [];
+    for (let d = new Date(dDesde); d <= dHasta; d.setDate(d.getDate() + 1)) {
+      diasRango.push(d.toISOString().slice(0, 10));              // YYYY-MM-DD
     }
-    const rowCount    = contadorDias + 1;      // +1 para la cabecera
-    const tableHeight = rowCount * lineHeight;
   
-  
-    // ——————————————————————————————————————————————————
-    // 7) Para cada empleado, generar una página A4
-    // ——————————————————————————————————————————————————
-    const empleadosKeys = Object.keys(state.empleados);
-    empleadosKeys.forEach((empId, idxEmp) => {
-      const nombreEmp        = state.empleados[empId] || empId;
-      const asistenciasDeEste = asistenciasPorEmpleado[empId] || {};
-  
-      // Si no es el primer empleado, agregamos página nueva
-      if (idxEmp > 0) {
-        doc.addPage();
-      }
-  
-      // ——————————————————————————
-      // 7.1) Escribir título y subtítulo
-      // ——————————————————————————
-      doc.setFontSize(titleFont);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Reporte de Asistencia', marginLeft, headerY);
-  
-      doc.setFontSize(subtitleFont);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Empleado: ${nombreEmp}`, marginLeft, headerY + 20);
-  
-      const periodoText = `Período: ${displayDesde}  –  ${displayHasta}`;
-      const anchoTexto   = doc.getTextWidth(periodoText);
-      doc.text(
-        periodoText,
-        pageWidth - marginLeft - anchoTexto,
-        headerY + 20
-      );
-  
-  
-      // ——————————————————————————
-      // 7.2) Dibujar líneas divisorias de la tabla
-      // ——————————————————————————
-      const tableY = headerY + 50;  // Y donde empieza la primera línea horizontal
-  
-      doc.setDrawColor(0, 0, 0);
-      doc.setLineWidth(0.5);
-  
-      // Líneas horizontales (i=0..rowCount)
-      for (let i = 0; i <= rowCount; i++) {
-        const yLine = tableY + i * lineHeight;
-        doc.line(tableLeft, yLine, tableRight, yLine);
-      }
-  
-      // Líneas verticales (bordes de columnas)
-      const x0 = tableLeft;
-      const x1 = colEntrada - 10;
-      const x2 = colSalida  - 10;
-      const x3 = colHoras  - 10;
-      const x4 = tableRight;
-  
-      doc.line(x0, tableY, x0, tableY + tableHeight);
-      doc.line(x1, tableY, x1, tableY + tableHeight);
-      doc.line(x2, tableY, x2, tableY + tableHeight);
-      doc.line(x3, tableY, x3, tableY + tableHeight);
-      doc.line(x4, tableY, x4, tableY + tableHeight);
-  
-  
-      // ——————————————————————————
-      // 7.3) Cabecera de la tabla (“Fecha | Entrada | Salida | Horas”)
-      // ——————————————————————————
-      doc.setFontSize(tableFont);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Fecha',   colFecha,   tableY + lineHeight - 4);
-      doc.text('Entrada', colEntrada, tableY + lineHeight - 4);
-      doc.text('Salida',  colSalida,  tableY + lineHeight - 4);
-      doc.text('Horas',   colHoras,   tableY + lineHeight - 4);
-  
-  
-      // ——————————————————————————
-      // 7.4) Filas de datos, iterando cada día del rango (formato DD/MM/YYYY)
-      // ——————————————————————————
-      let yText = tableY + lineHeight * 2;
-      doc.setFont('helvetica', 'normal');
-  
-      for (let tmp = new Date(desdeDate); tmp <= hastaDate; tmp.setDate(tmp.getDate() + 1)) {
-        const año   = tmp.getFullYear();
-        const mes   = String(tmp.getMonth() + 1).padStart(2, '0');
-        const dia   = String(tmp.getDate()).padStart(2, '0');
-        const iso   = `${año}-${mes}-${dia}`;
-        const fecha = `${dia}/${mes}/${año}`;
-  
-        const registrosHoy = asistenciasDeEste[iso] || [];
-  
-        if (registrosHoy.length > 0) {
-          // Ordenar marcas por timestamp
-          registrosHoy.sort((a, b) => a.timestamp._seconds - b.timestamp._seconds);
-  
-          let entrada, salida, horasTrabajadas;
-          if (registrosHoy.length >= 2) {
-            entrada = new Date(registrosHoy[0].timestamp._seconds * 1000);
-            salida  = new Date(registrosHoy[registrosHoy.length - 1].timestamp._seconds * 1000);
-            horasTrabajadas = (salida - entrada) / (1000 * 60 * 60);
-          } else {
-            // Solo una marca: la consideramos entrada, salida = null
-            entrada = new Date(registrosHoy[0].timestamp._seconds * 1000);
-            salida = null;
-            horasTrabajadas = 0;
-          }
-  
-          const entradaStr = entrada.toLocaleTimeString('es-CL');
-          const salidaStr  = salida ? salida.toLocaleTimeString('es-CL') : '—';
-          const horasStr   = salida ? horasTrabajadas.toFixed(2) : '0.00';
-  
-          doc.text(fecha,      colFecha,   yText);
-          doc.text(entradaStr, colEntrada, yText);
-          doc.text(salidaStr,  colSalida,  yText);
-          doc.text(horasStr,   colHoras,   yText);
-        } else {
-          // Si no hay marcas en ese día:
-          doc.text(fecha,        colFecha,   yText);
-          doc.text('Sin registro', colEntrada, yText);
-        }
-  
-        yText += lineHeight;
-  
-        // ——————————————————————————
-        // 7.4.1) Salto de página interno si nos pasamos de maxContentY
-        // ——————————————————————————
-        if (yText + lineHeight * 2 > maxContentY) {
-          doc.addPage();
-  
-          // Repetir título y subtítulo
-          doc.setFontSize(titleFont);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Reporte de Asistencia', marginLeft, headerY);
-  
-          doc.setFontSize(subtitleFont);
-          doc.setFont('helvetica', 'normal');
-          doc.text(`Empleado: ${nombreEmp}`, marginLeft, headerY + 20);
-          doc.text(
-            periodoText,
-            pageWidth - marginLeft - anchoTexto,
-            headerY + 20
-          );
-  
-          // Repetir líneas divisorias y cabecera de tabla en página nueva
-          const tableY2 = headerY + 50;
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(0.5);
-  
-          for (let i2 = 0; i2 <= rowCount; i2++) {
-            const yLine2 = tableY2 + i2 * lineHeight;
-            doc.line(tableLeft, yLine2, tableRight, yLine2);
-          }
-  
-          doc.line(x0, tableY2, x0, tableY2 + tableHeight);
-          doc.line(x1, tableY2, x1, tableY2 + tableHeight);
-          doc.line(x2, tableY2, x2, tableY2 + tableHeight);
-          doc.line(x3, tableY2, x3, tableY2 + tableHeight);
-          doc.line(x4, tableY2, x4, tableY2 + tableHeight);
-  
-          doc.setFontSize(tableFont);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Fecha',   colFecha,   tableY2 + lineHeight - 4);
-          doc.text('Entrada', colEntrada, tableY2 + lineHeight - 4);
-          doc.text('Salida',  colSalida,  tableY2 + lineHeight - 4);
-          doc.text('Horas',   colHoras,   tableY2 + lineHeight - 4);
-  
-          yText = tableY2 + lineHeight * 2;
-          doc.setFont('helvetica', 'normal');
-        }
-      }
+    /* ── 3. Agrupación de marcas por fecha local ──────────────────── */
+    const agrup = {};
+    state.asistencias.forEach(r => {
+      if (!r.empId || !r.timestamp?._seconds) return;
+      const isoLocal = fechaLocalISO(r.timestamp);                // local
+      agrup[r.empId] = agrup[r.empId] || {};
+      agrup[r.empId][isoLocal] = agrup[r.empId][isoLocal] || [];
+      agrup[r.empId][isoLocal].push(r);
     });
   
+    /* ── 4. Empleados con turno dentro del rango ─────────────────── */
+    const empleadosActivos = Object.keys(state.empleados)
+      .filter(id => diasRango.some(f => state.horarios[id]?.[f]));
   
-    // ——————————————————————————————————————————————————
-    // 8) Guardar / Descargar el PDF
-    // ——————————————————————————————————————————————————
+    /* ── 5. Portada ──────────────────────────────────────────────── */
+    doc.setFontSize(20).text('Reporte de Asistencia', margin, 60);
+    doc.setFontSize(12)
+       .text(`Período: ${dispDesde} – ${dispHasta}`, margin, 80)
+       .text(`Generado: ${new Date().toLocaleString('es-CL')}`, margin, 96);
+    doc.addPage();
+  
+    /* ── 6. Resumen general ──────────────────────────────────────── */
+    const resumenCols = [
+      { header:'Empleado',       dataKey:'nombre' },
+      { header:'Días turno',     dataKey:'dias'   },
+      { header:'Horas totales',  dataKey:'totH'   },
+      { header:'Ext. brutas',    dataKey:'extH'   },
+      { header:'Horas netas',    dataKey:'netH'   },
+      { header:'Min atraso',     dataKey:'atr'    }
+    ];
+  
+    const resumenBody = empleadosActivos.map(empId => {
+      let dias=0, brutoMs=0, extraMs=0, netMs=0, atrMin=0;
+  
+      diasRango.forEach(fecha => {
+        const turno = state.horarios[empId]?.[fecha];
+        if (!turno?.entrada || !turno?.salida) return;
+  
+        const regs = registrosDelDia(empId, fecha, state.horarios[empId]?.[fecha]);
+        if (regs.length < 2) return;
+  
+        dias++;
+        const en = new Date(regs[0].timestamp._seconds*1000);
+        const sl = new Date(regs.at(-1).timestamp._seconds*1000);
+        brutoMs += sl - en;
+  
+        const [hEi,mEi] = turno.entrada.split(':').map(Number);
+        const atraso    = Math.max(0,(en.getHours()*60+en.getMinutes()) - (hEi*60+mEi));
+        atrMin += atraso;
+  
+        const [hEs,mEs] = turno.salida.split(':').map(Number);
+        const progSal = new Date(en); progSal.setHours(hEs,mEs,0,0);
+        const exMs = Math.max(0, sl - progSal);
+        extraMs += exMs;
+        netMs   += Math.max(0, exMs - atraso*60000);
+      });
+  
+      return {
+        nombre: state.empleados[empId],
+        dias,
+        totH: +(brutoMs/3600000).toFixed(2),
+        extH: +(extraMs/3600000).toFixed(2),
+        netH: +(netMs  /3600000).toFixed(2),
+        atr : atrMin
+      };
+    });
+  
+    doc.setFontSize(16).text('Resumen General', margin, 50);
+    doc.autoTable({
+      startY: 70,
+      theme:'grid',
+      headStyles:{ fillColor:[41,128,185], textColor:255 },
+      styles:{ fontSize:9, cellPadding:4 },
+      columns: resumenCols,
+      body: resumenBody,
+      margin:{ left: margin, right: margin }
+    });
+  
+    /* ── 7. Detalle por empleado ─────────────────────────────────── */
+    const detCols = [
+      { header:'Fecha',      dataKey:'fecha' },
+      { header:'Prog. In',   dataKey:'pIn'   },
+      { header:'Prog. Out',  dataKey:'pOut'  },
+      { header:'Entrada',    dataKey:'rIn'   },
+      { header:'Salida',     dataKey:'rOut'  },
+      { header:'Total (h)',  dataKey:'brH'   },
+      { header:'Ext. brutas',dataKey:'exH'   },
+      { header:'Atraso (m)', dataKey:'atr'   },
+      { header:'# marcas',   dataKey:'cnt'   }
+    ];
+  
+    empleadosActivos.forEach(empId => {
+      doc.addPage();
+      doc.setFontSize(14).text(`Detalle: ${state.empleados[empId]}`, margin, 50);
+  
+      const rows=[];
+      diasRango.forEach(fecha=>{
+        const turno = state.horarios[empId]?.[fecha] || {};
+        const progIn  = turno.entrada || '—';
+        const progOut = turno.salida  || '—';
+  
+        const regs = registrosDelDia(empId, fecha, state.horarios[empId]?.[fecha]);
+        let rIn='—', rOut='—', br=0, ex=0, atr=0;
+        if (regs.length >= 2) {
+          const en = new Date(regs[0].timestamp._seconds*1000);
+          const sl = new Date(regs.at(-1).timestamp._seconds*1000);
+          rIn  = fmtHoraConDia(en, fecha);   // pasa el ISO del día
+          rOut = fmtHoraConDia(sl, fecha);
+          br = +((sl-en)/3600000).toFixed(2);
+  
+          if (turno.entrada && turno.salida) {
+            const [hEi,mEi]=turno.entrada.split(':').map(Number);
+            atr=Math.max(0,(en.getHours()*60+en.getMinutes())-(hEi*60+mEi));
+  
+            const [hEs,mEs]=turno.salida.split(':').map(Number);
+            const prog=new Date(en); prog.setHours(hEs,mEs,0,0);
+            ex = +((Math.max(0, sl - prog))/3600000).toFixed(2);
+          }
+        }
+  
+        rows.push({
+          fecha: fecha.slice(8,10)+'/'+fecha.slice(5,7),
+          pIn: progIn,
+          pOut: progOut,
+          rIn, rOut,
+          brH: br,
+          exH: ex,
+          atr,
+          cnt: regs.length
+        });
+      });
+  
+      doc.autoTable({
+        startY: 70,
+        theme:'striped',
+        headStyles:{ fillColor:[52,73,94], textColor:255 },
+        styles:{ fontSize:8.5, cellPadding:3 },
+        columns: detCols,
+        body: rows,
+        margin:{ left: margin, right: margin }
+      });
+    });
+  
+    /* ── 8. Gráfico Programado vs Trabajado ───────────────────────── */
+    doc.addPage().setFontSize(14).text('Programado vs Trabajado', margin, 50);
+    const labels = diasRango.map(f => f.slice(8,10)+'/'+f.slice(5,7));
+
+    const schedArr = diasRango.map(f =>
+      empleadosActivos.reduce((s,id)=>{
+        const t=state.horarios[id]?.[f];
+        if(!t?.entrada||!t?.salida) return s;
+        const [hEi,mEi]=t.entrada.split(':').map(Number);
+        const [hEs,mEs]=t.salida .split(':').map(Number);
+        return s + ((hEs*60+mEs)-(hEi*60+mEi))/60;
+      },0)
+    );
+    const workedArr = diasRango.map(f =>
+      empleadosActivos.reduce((s,id)=>{
+        const regs = registrosDelDia(id, f, state.horarios[id]?.[f]);
+        if(regs.length<2) return s;
+        const en=new Date(regs[0].timestamp._seconds*1000);
+        const sl=new Date(regs.at(-1).timestamp._seconds*1000);
+        return s + (sl-en)/3600000;
+      },0)
+    );
+
+    let canvas=document.createElement('canvas');
+    canvas.width=600; canvas.height=300;
+    new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{ labels,
+        datasets:[
+          { label:'Programado', backgroundColor:'rgba(54,162,235,0.7)', data:schedArr },
+          { label:'Trabajado',  backgroundColor:'rgba(75,192,192,0.7)', data:workedArr }
+        ]},
+      options:{ animation:false, responsive:false, scales:{y:{beginAtZero:true}}}
+    });
+    let img = canvas.toDataURL();
+    let w = pageWidth-2*margin, h=(canvas.height/canvas.width)*w;
+    doc.addImage(img,'PNG',margin,80,w,h);
+
+    /* ── 8.2 Pie: distribución de horas netas por empleado ─────── */
+    doc.addPage().setFontSize(14).text('Horas netas por empleado', margin, 50);
+
+    // Suma neta por empleado
+    const pieLabels = empleadosActivos.map(id=>state.empleados[id]);
+    const pieData   = empleadosActivos.map(id=>{
+      return diasRango.reduce((sum,f)=>{
+        const t=state.horarios[id]?.[f];
+        const regs = registrosDelDia(id, f, state.horarios[id]?.[f]);
+        if(!t?.entrada||!t?.salida||regs.length<2) return sum;
+        const en=new Date(regs[0].timestamp._seconds*1000);
+        const sl=new Date(regs.at(-1).timestamp._seconds*1000);
+        const [hEi,mEi]=t.entrada.split(':').map(Number);
+        const atr=Math.max(0,(en.getHours()*60+en.getMinutes())-(hEi*60+mEi));
+        const [hEs,mEs]=t.salida.split(':').map(Number);
+        const prog=new Date(en); prog.setHours(hEs,mEs,0,0);
+        const netMs=Math.max(0, Math.max(0,sl-prog) - atr*60000);
+        return sum + netMs/3600000;
+      },0).toFixed(2);
+    });
+
+    canvas=document.createElement('canvas'); canvas.width=500; canvas.height=500;
+    new Chart(canvas.getContext('2d'),{
+      type:'pie',
+      data:{ labels:pieLabels, datasets:[{ data:pieData, backgroundColor:[
+        '#36A2EB','#4BC0C0','#FFCE56','#FF6384','#9966FF','#FF9F40'
+      ]}]},
+      options:{ animation:false, responsive:false, plugins:{ legend:{ position:'right' } } }
+    });
+    img=canvas.toDataURL();
+    w=pageWidth-2*margin; h=(canvas.height/canvas.width)*w;
+    doc.addImage(img,'PNG',margin,80,w,h);
+
+    /* ── 8.3 Barra horizontal: minutos de atraso por empleado ──── */
+    doc.addPage().setFontSize(14).text('Minutos de atraso acumulados', margin, 50);
+
+    const atrData = empleadosActivos.map(id=>{
+      return diasRango.reduce((sum,f)=>{
+        const t=state.horarios[id]?.[f];
+        const regs = registrosDelDia(id, f, state.horarios[id]?.[f]);
+        if(!t?.entrada||regs.length<2) return sum;
+        const en=new Date(regs[0].timestamp._seconds*1000);
+        const [hEi,mEi]=t.entrada.split(':').map(Number);
+        return sum + Math.max(0,(en.getHours()*60+en.getMinutes())-(hEi*60+mEi));
+      },0);
+    });
+
+    canvas=document.createElement('canvas'); canvas.width=600; canvas.height=300;
+    new Chart(canvas.getContext('2d'),{
+      type:'bar',
+      data:{
+        labels:pieLabels,
+        datasets:[{ label:'Minutos', data:atrData, backgroundColor:'rgba(255,99,132,0.7)' }]
+      },
+      options:{
+        animation:false, responsive:false,
+        indexAxis:'y',
+        scales:{ x:{ beginAtZero:true } }
+      }
+    });
+    img=canvas.toDataURL();
+    w=pageWidth-2*margin; h=(canvas.height/canvas.width)*w;
+    doc.addImage(img,'PNG',margin,80,w,h);
+  
+    /* ── 9. Footer de páginas ─────────────────────────────────────── */
+    const totalPages = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    for(let i=1;i<=totalPages;i++){
+      doc.setPage(i).text(`Página ${i} de ${totalPages}`, pageWidth-margin, pageHeight-10,{align:'right'});
+    }
+  
     doc.save(`asistencia_${desde}_${hasta}.pdf`);
   }
-  
+  /* ── 2. Descargar feriados y normalizar ────────────────── */
+  async function cargarFeriados(desde, hasta) {
+  try {
+    const resp = await fetch('https://api.boostr.cl/holidays.json');
+    const json = await resp.json();
 
-// Función completa: recibe únicamente dos strings "YYYY-MM-DD"
-// ————————————————————————————————————————————————
+    let listaISO = [];
+
+    if (Array.isArray(json)) {
+      // Formato API gob.cl: [{ fecha:'2025-01-01', ...}, ...]
+      listaISO = json.map(f => f.fecha);
+    } else if (Array.isArray(json.data)) {
+      // Formato { data:[{ date:'2025-01-01', ...}, ...] }
+      listaISO = json.data.map(f => f.date);
+    } else if (json && typeof json === 'object') {
+      // Formato { '2025-01-01': {...}, '2025-03-28': {...} }
+      listaISO = Object.keys(json);
+    }
+
+    return listaISO.filter(f => f >= desde && f <= hasta);
+  } catch (e) {
+    console.warn('No se pudo cargar feriados:', e);
+    return [];        // continúa sin feriados
+  }
+  }
+
 async function generarExcel(desde, hasta) {
-  // 1) Verifica que ExcelJS y FileSaver ya estén cargados:
-  //    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-  //    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  /* 1. Fechas y rango ---------------------------------------------- */
+  const [yD, mD, dD] = desde.split('-').map(Number);
+  const [yH, mH, dH] = hasta.split('-').map(Number);
+  const dispDesde = `${dD.toString().padStart(2,'0')}/${mD.toString().padStart(2,'0')}/${yD}`;
+  const dispHasta = `${dH.toString().padStart(2,'0')}/${mH.toString().padStart(2,'0')}/${yH}`;
+  const dDesde = new Date(yD, mD - 1, dD);
+  const dHasta = new Date(yH, mH - 1, dH);
 
-  // 2) Construir versiones “DD/MM/YYYY” de desde y hasta
-  const [yDesde, mDesde, dDesde] = desde.split('-').map(Number);
-  const [yHasta, mHasta, dHasta] = hasta.split('-').map(Number);
-  const displayDesde = `${String(dDesde).padStart(2, '0')}/${String(mDesde).padStart(2, '0')}/${yDesde}`;
-  const displayHasta = `${String(dHasta).padStart(2, '0')}/${String(mHasta).padStart(2, '0')}/${yHasta}`;
+  const diasRango = [];
+  for (let d = new Date(dDesde); d <= dHasta; d.setDate(d.getDate() + 1)) {
+    diasRango.push(d.toISOString().slice(0, 10));   // YYYY-MM-DD
+  }
 
-  // 3) Crear nuevo workbook
-  const workbook = new ExcelJS.Workbook();
+  /* 2. Feriados ----------------------------------------------------- */
+  const feriados = await cargarFeriados(desde, hasta);
+  const setFeriados = new Set(feriados);
 
-  // 4) Agrupar state.asistencias por empId y fecha "YYYY-MM-DD"
-  const asistenciasPorEmpleado = {};
+  /* 3. Empleados con turno en el rango ------------------------------ */
+  const empleadosActivos = Object.keys(state.empleados).filter(id =>
+    diasRango.some(f => state.horarios[id]?.[f])
+  );
+  if (!empleadosActivos.length) {
+    showToast('Ningún empleado con turno en ese rango', 'info');
+    return;
+  }
+
+  /* 4. Agrupar marcas y hallar máx. marcas -------------------------- */
+  const agrup = {};
+  let maxMarks = 0;
   state.asistencias.forEach(r => {
-    if (!r.empId || !r.timestamp || typeof r.timestamp._seconds !== 'number') return;
-    const ms = r.timestamp._seconds * 1000 + (r.timestamp._nanoseconds || 0) / 1e6;
-    const dObj = new Date(ms);
-    const iso = 
-      dObj.getFullYear() + '-' +
-      String(dObj.getMonth() + 1).padStart(2, '0') + '-' +
-      String(dObj.getDate()).padStart(2, '0');
-
-    if (!asistenciasPorEmpleado[r.empId]) {
-      asistenciasPorEmpleado[r.empId] = {};
-    }
-    if (!asistenciasPorEmpleado[r.empId][iso]) {
-      asistenciasPorEmpleado[r.empId][iso] = [];
-    }
-    asistenciasPorEmpleado[r.empId][iso].push(r);
+    if (!r.empId || !r.timestamp?._seconds) return;
+    const iso = fechaLocalISO(r.timestamp);
+    agrup[r.empId] ??= {};
+    agrup[r.empId][iso] ??= [];
+    agrup[r.empId][iso].push(r);
+    maxMarks = Math.max(
+        maxMarks,
+        registrosDelDia(r.empId, iso, state.horarios[r.empId]?.[iso]).length
+    );
   });
+  const markHeaders = Array.from({ length: maxMarks }, (_, i) => `M${i+1}`);
 
-  // 5) Para cada empleado, crear una hoja
-  Object.entries(state.empleados).forEach(([empId, nombre]) => {
-    const worksheet = workbook.addWorksheet(nombre);
+  /* 5. Crear workbook ------------------------------------------------ */
+  const wb = new ExcelJS.Workbook();
 
-    // 5.1) Encabezados
-    worksheet.addRow([`Reporte de Asistencia: ${nombre}`]);
-    worksheet.addRow([`Período: ${displayDesde} – ${displayHasta}`]);
-    worksheet.addRow([]); // fila en blanco
-    worksheet.addRow(['Fecha', 'Hora Entrada', 'Hora Salida', 'Total Horas']);
+  /* 5A. Hoja Resumen ------------------------------------------------- */
+  const wsRes = wb.addWorksheet('Resumen');
+  wsRes.addRow([`Reporte de Asistencia — Resumen General`]);
+  wsRes.addRow([`Período: ${dispDesde} – ${dispHasta}`]);
+  wsRes.addRow([]);
+  wsRes.addRow([
+    'Empleado', 'Días con turno', 'Horas prog.',
+    'Horas trabajadas', 'Horas extra netas',
+    '% Cumplimiento jornada', 'Min. atraso'
+  ]);
 
-    // 5.2) Obtener asistencias de este empleado
-    const asistenciasDeEste = asistenciasPorEmpleado[empId] || {};
-
-    // 5.3) Iterar día a día desde 'desde' hasta 'hasta'
-    const desdeDate = new Date(yDesde, mDesde - 1, dDesde);
-    const hastaDate = new Date(yHasta, mHasta - 1, dHasta);
-
-    for (let tmp = new Date(desdeDate); tmp <= hastaDate; tmp.setDate(tmp.getDate() + 1)) {
-      const año  = tmp.getFullYear();
-      const mes  = String(tmp.getMonth() + 1).padStart(2, '0');
-      const dia  = String(tmp.getDate()).padStart(2, '0');
-      const iso  = `${año}-${mes}-${dia}`;
-      const fechaDisplay = `${dia}/${mes}/${año}`;
-
-      const registrosHoy = asistenciasDeEste[iso] || [];
-      if (registrosHoy.length > 0) {
-        registrosHoy.sort((a, b) => a.timestamp._seconds - b.timestamp._seconds);
-        let entrada, salida, horasTrabajadas;
-        if (registrosHoy.length >= 2) {
-          entrada = new Date(registrosHoy[0].timestamp._seconds * 1000);
-          salida  = new Date(registrosHoy[registrosHoy.length - 1].timestamp._seconds * 1000);
-          horasTrabajadas = (salida - entrada) / (1000 * 60 * 60);
-        } else {
-          entrada = new Date(registrosHoy[0].timestamp._seconds * 1000);
-          salida = null;
-          horasTrabajadas = 0;
-        }
-        const entradaStr = entrada.toLocaleTimeString('es-CL');
-        const salidaStr  = salida ? salida.toLocaleTimeString('es-CL') : '—';
-        const horasStr   = salida ? horasTrabajadas.toFixed(2) : '0.00';
-        worksheet.addRow([fechaDisplay, entradaStr, salidaStr, horasStr]);
-      } else {
-        worksheet.addRow([fechaDisplay, 'Sin registro', '', '']);
-      }
-    }
-
-    // 5.4) Ajustar ancho de columnas
-    worksheet.columns.forEach(col => {
-      col.width = 15;
+  empleadosActivos.forEach(empId => {
+    let dias=0, progMin=0, workedMin=0, netExtraMin=0, atrMin=0;
+    diasRango.forEach(f=>{
+      const t=state.horarios[empId]?.[f];
+      if(!t?.entrada||!t?.salida) return;
+      const regs = registrosDelDia(empId, f, state.horarios[empId]?.[f]);
+      if(regs.length<2) return;
+      dias++;
+      const en=new Date(regs[0].timestamp._seconds*1000);
+      const sl=new Date(regs.at(-1).timestamp._seconds*1000);
+      workedMin += (sl-en)/60000;
+      const [hEi,mEi]=t.entrada.split(':').map(Number);
+      const [hEs,mEs]=t.salida .split(':').map(Number);
+      progMin += (hEs*60+mEs)-(hEi*60+mEi);
+      const atraso=Math.max(0,(en.getHours()*60+en.getMinutes())-(hEi*60+mEi));
+      atrMin+=atraso;
+      const progSal=new Date(en); progSal.setHours(hEs,mEs,0,0);
+      const extraMin=Math.max(0,(sl-progSal)/60000);
+      netExtraMin += Math.max(0, extraMin - atraso);
     });
+    wsRes.addRow([
+      state.empleados[empId],
+      dias,
+      (progMin/60).toFixed(2),
+      (workedMin/60).toFixed(2),
+      (netExtraMin/60).toFixed(2),
+      progMin?`${((workedMin/progMin)*100).toFixed(1)} %`:'—',
+      atrMin
+    ]);
+  });
+  wsRes.columns.forEach(c=>c.width=18);
+
+  /* 5B. Hoja por empleado ------------------------------------------- */
+  empleadosActivos.forEach(empId=>{
+    const nombre=state.empleados[empId];
+    const ws=wb.addWorksheet(empId);
+    ws.addRow([`Empleado: ${nombre}`]);
+    ws.addRow([`Período: ${dispDesde} – ${dispHasta}`]);
+    ws.addRow([]);
+    ws.addRow([
+      'Fecha', 'Tipo día',                 // ← nueva columna
+      'Prog. In', 'Prog. Out', 'Entrada', 'Salida',
+      'Total (h)', 'Extra bruta (h)', 'Extra neta (h)', 'Atraso (m)',
+      'ΔEntrada (m)', 'ΔSalida (m)', '# marcas',
+      ...markHeaders, 'Observación'
+    ]);
+
+    diasRango.forEach(iso=>{
+      const [a,m,d]=iso.split('-');
+      const fechaDisp=`${d}/${m}/${a}`;
+      const [yy, mm, dd] = iso.split('-').map(Number);
+      const dow = new Date(yy, mm - 1, dd).getDay(); // 0 = domingo ✅
+      let tipoDia='H';
+      if(setFeriados.has(iso)) tipoDia='F';
+      else if(dow===0)         tipoDia='D';
+      else if(dow===6)         tipoDia='S';
+      const t=state.horarios[empId]?.[iso]||{};
+      const progIn=t.entrada||'—';
+      const progOut=t.salida||'—';
+      const regs = registrosDelDia(empId, iso, state.horarios[empId]?.[iso]);
+
+      let rowData=[], atrasoMin=0, deltaOutMin=0, extraBrutaH=0, extraNetaH=0, totalH=0;
+      if(regs.length){
+        const en=new Date(regs[0].timestamp._seconds*1000);
+        const sl= regs.length>1 ? new Date(regs.at(-1).timestamp._seconds*1000):null;
+        totalH = sl ? (sl-en)/3_600_000 : 0;
+
+        if(progIn!=='—'){
+          atrasoMin=Math.max(0,(en.getHours()*60+en.getMinutes())-
+                                (parseInt(progIn)*60+parseInt(progIn.split(':')[1])));
+        }
+        if(sl && progOut!=='—'){
+          const [hEs,mEs]=progOut.split(':').map(Number);
+          const progSal=new Date(en); progSal.setHours(hEs,mEs,0,0);
+          deltaOutMin=Math.round((sl-progSal)/60000);
+          extraBrutaH=Math.max(0,deltaOutMin/60);
+          extraNetaH=Math.max(0,extraBrutaH - atrasoMin/60);
+        }
+
+        rowData = [
+          fechaDisp, tipoDia,
+          progIn, progOut,
+          fmtHoraConDia(en, iso),                       // ①
+          sl ? fmtHoraConDia(sl, iso) : '—',            // ②
+          +totalH.toFixed(2),
+          +extraBrutaH.toFixed(2),
+          +extraNetaH.toFixed(2),
+          atrasoMin,
+          atrasoMin, deltaOutMin, regs.length,
+          ...regs.map(r =>
+            fmtHoraConDia(new Date(r.timestamp._seconds * 1000), iso) // ③
+          ),
+          ''
+        ];
+      }else{
+        rowData=[
+          fechaDisp, tipoDia,                // ← se agrega aquí
+          progIn, progOut,
+          '—','—',0,0,0,0,0,0,0,
+          ...Array(maxMarks).fill(''), ''
+        ];
+      }
+      const isSunday  = dow === 0;
+      const isSaturday = dow === 6;
+      const isHoliday = tipoDia === 'F';
+      const row=ws.addRow(rowData);
+      if (isHoliday || isSunday) {
+        row.eachCell(c => c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFC7CE' }   // rojo suave
+        });
+      // ► 2. Sábados (solo si quieres mantenerlos azules)
+      } else if (isSaturday) {
+        row.eachCell(c => c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFDDEBF7' }   // azul pastel
+        });
+      }
+    });
+
+    ws.columns.forEach((c,i)=>{c.width=i<13?15:10;});
+    const refK=`K4:K${ws.rowCount}`;
+    ws.addConditionalFormatting({
+      ref:refK,
+      rules:[
+        {type:'cellIs',operator:'greaterThan',formulae:['5'],
+         style:{fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFC7CE'}}}},
+        {type:'cellIs',operator:'between',formulae:['1','5'],
+         style:{fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFEB9C'}}}},
+        {type:'cellIs',operator:'equal',formulae:['0'],
+         style:{fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF9BE9A8'}}}}
+      ]
+    });
+    const colObserv=ws.getColumn(14+maxMarks); // índice ajustado por nueva col
+    colObserv.protection={locked:false};
+    ws.protect('facepulse',{selectLockedCells:true,selectUnlockedCells:true});
   });
 
-  // 6) Generar buffer xlsx y descargar
-  const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  /* 5C. Hoja Parámetros --------------------------------------------- */
+  const wsPar=wb.addWorksheet('Parámetros');
+  wsPar.addRow(['Feriados (INCLUIDOS en el rango)']);
+  feriados.forEach(f=>{
+    const [y,m,d]=f.split('-');
+    wsPar.addRow([`${d}/${m}/${y}`]);
   });
-  saveAs(blob, `asistencia_${desde}_${hasta}.xlsx`);
+  wsPar.columns.forEach(c=>c.width=20);
+
+  /* 6. Descargar ----------------------------------------------------- */
+  const buf=await wb.xlsx.writeBuffer();
+  saveAs(
+    new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),
+    `asistencia_${desde}_${hasta}.xlsx`
+  );
 }
-
-  
-  
-  
-  
-
 async function generarSVG(desde, hasta) {
   // ——————————————————————————————————————————————————
   // 1) Convertir 'desde' y 'hasta' (strings "YYYY-MM-DD") a Date y a formato "DD/MM/YYYY"
@@ -686,7 +839,6 @@ async function generarSVG(desde, hasta) {
     try {
       // aquí NO mostramos "Generando documento..." inmediato
       // showToast('Generando documento...', 'info');
-  
       // Generar contenido para cada empleado
       const contenidoPorEmpleado = Object.entries(state.empleados).map(
         ([empId, nombre]) => generarContenidoPorEmpleado(empId, nombre, desde, hasta)
@@ -713,8 +865,30 @@ async function generarSVG(desde, hasta) {
       showToast('Error al generar el documento', 'error');
     }
   });
+  function fmtHoraConDia(dt, isoBase) {
+    const hora = dt.toLocaleTimeString('es-CL');      // «00:12:36 a. m.»
+    const iso  = dt.getFullYear() + '-' +          // ← LOCAL ➜  coincide con isoBase
+            String(dt.getMonth()+1).padStart(2,'0') + '-' +
+            String(dt.getDate()).padStart(2,'0');      // «2025-06-13»
   
-
+    if (iso !== isoBase) {           // ← pertenece al día siguiente
+      const [a,m,d] = iso.split('-');
+      return `${hora} (${d}/${m})`;  // «00:12:36 a. m. (13/06)»
+      // o si prefieres año:  (${d}/${m}/${a.slice(2)})
+    }
+    return hora;                     // misma fecha ⇒ solo la hora
+  }
+  function reconstruirIndice() {
+    idxAsis = {};
+    state.asistencias.forEach(r => {
+      if (!r.empId || !r.timestamp?._seconds) return;
+      const iso = fechaLocalISO(r.timestamp);
+      idxAsis[r.empId] ??= {};
+      idxAsis[r.empId][iso] ??= [];
+      idxAsis[r.empId][iso].push(r);
+    });
+  }
+  
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-white z-50 ${
@@ -808,13 +982,45 @@ async function generarSVG(desde, hasta) {
 
       state.empleados = empMap;
       state.asistencias = data;
+      reconstruirIndice(); 
       renderTablaResumen();
     } catch (error) {
       panel.innerHTML = `<p>Error al cargar: ${error.message}</p>`;
       showToast(`Error: ${error.message}`, 'error');
     }
   }
-
+  function marcasDelDia(empId, iso) {
+    return (idxAsis[empId] && idxAsis[empId][iso]) ? idxAsis[empId][iso] : [];
+  }
+  function registrosDelDia(empId, iso, turno = {}, margenMin = 60) {
+    // 0) Garantiza que los registros queden en orden cronológico
+    const ordenar = arr => arr.sort(
+      (a,b) => (a.timestamp._seconds - b.timestamp._seconds)
+    );
+  
+    // 1) Marcas del propio día, filtradas
+    let lista = ordenar(marcasDelDia(empId, iso))
+                  .filter(r => {
+                    const dt = new Date(r.timestamp._seconds * 1000);
+                    return (dt.getHours() * 60 + dt.getMinutes()) > margenMin;
+                  });
+  
+    // 2) Si no hay turno definido no “prestamos” marcas
+    if (!turno.entrada || !turno.salida) return lista;
+  
+    // 3) Tomar marcas tempranas del día siguiente
+    const nextIso = new Date(iso + 'T00:00:00');
+    nextIso.setDate(nextIso.getDate() + 1);
+    const isoNext = nextIso.toISOString().slice(0,10);
+  
+    const extra = ordenar(marcasDelDia(empId, isoNext))
+                    .filter(r => {
+                      const dt = new Date(r.timestamp._seconds * 1000);
+                      return (dt.getHours() * 60 + dt.getMinutes()) <= margenMin;
+                    });
+  
+    return lista.concat(extra);
+  }
   async function cargarHorarios(semanaInicio) {
     try {
       const res = await fetch(`${BASE_URL}/turnos-semanales/${semanaInicio}`, {
@@ -831,107 +1037,206 @@ async function generarSVG(desde, hasta) {
       showToast('Error al cargar horarios', 'error');
     }
   }
-
   function renderTablaResumen() {
-    const { empleados, diasSemana, asistencias } = state;
+    const { diasSemana, asistencias, horarios, empleados } = state;
+    // 1) Sólo los empId que tienen turno esta semana
+    const empleadosConHorario = Object.keys(horarios);
+    if (empleadosConHorario.length === 0) {
+      panel.innerHTML = `
+        <div class="p-4 text-center text-white-700">
+          Actualmente no existen registros de horarios para los empleados.
+        </div>
+      `;
+      return;
+    }
+  
+    // 2) Construir la cabecera de la tabla
     let html = `
       <table id="tabla-asistencias" class="w-full">
         <thead class="bg-gray-700 text-gray-300">
           <tr>
             <th class="px-4 py-3 text-left">Empleado</th>
-            ${diasSemana.map(date => `<th class="px-4 py-3 text-center">${formatFechaCorta(date)}</th>`).join('')}
+            ${diasSemana.map(date =>
+              `<th class="px-4 py-3 text-center">${formatFechaCorta(date)}</th>`
+            ).join('')}
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-700">
     `;
-    
-    Object.entries(empleados).forEach(([empId, nombre]) => {
+  
+    // 3) Iterar sólo sobre los empleados con horario
+    empleadosConHorario.forEach(empId => {
+      const nombre = empleados[empId] || empId;
       html += `<tr class="hover:bg-gray-750 transition-colors">`;
       html += `<td class="px-4 py-3 text-gray-100">${nombre}</td>`;
-      
-      diasSemana.forEach(dateStr => {
-        const hayAsistencia = asistencias.some(r =>
-          r.empId === empId &&
-          r.timestamp &&
-          r.timestamp._seconds &&
-          fechaLocalISO(r.timestamp) === dateStr
-        );
-        
-        html += `<td class="px-4 py-3 text-center celda-dia ${hayAsistencia ? 'text-green-400' : 'text-red-400'}" 
-          data-empid="${empId}" 
-          data-fecha="${dateStr}" 
-          style="cursor:pointer">
-          ${hayAsistencia ? '✔️' : '❌'}
-        </td>`;
+  
+      // 4) Para cada día de la semana, marcamos ✔️ o ❌
+      diasSemana.forEach(fecha => {
+        const hayAsistencia = registrosDelDia(empId, fecha, state.horarios[empId]?.[fecha]).length > 0;
+        html += `
+          <td
+            class="px-4 py-3 text-center celda-dia ${hayAsistencia ? 'text-green-400' : 'text-red-400'}"
+            data-empid="${empId}"
+            data-fecha="${fecha}"
+            style="cursor:pointer"
+          >
+            ${hayAsistencia ? '✔️' : '❌'}
+          </td>
+        `;
       });
-      
-      html += '</tr>';
+  
+      html += `</tr>`;
     });
-    
-    html += '</tbody></table>';
+  
+    html += `</tbody></table>`;
     panel.innerHTML = html;
-
-    // Listeners para detalles
+  
+    // 5) Re-conectar listeners para mostrar el modal de detalle
     panel.querySelectorAll('.celda-dia').forEach(td => {
       td.addEventListener('click', () => mostrarDetalle(td.dataset.empid, td.dataset.fecha));
     });
   }
-
   function mostrarDetalle(empId, fecha) {
+    // 1) Filtrar y ordenar las marcas del día
     const detalles = state.asistencias.filter(r =>
       r.empId === empId &&
       r.timestamp &&
       r.timestamp._seconds &&
       fechaLocalISO(r.timestamp) === fecha
     );
+    const detallesOrdenados = registrosDelDia(empId, fecha, state.horarios[empId]?.[fecha]);
+  
+    // 2) Obtener turno programado
+    const horariosEmp = (state.horarios[empId] && state.horarios[empId][fecha]) || {};
+  
+    // 3) Título del modal
+    modalTitulo.textContent =
+      `Detalle de ${state.empleados[empId] || empId} — ${formatFechaLarga(fecha)}`;
+  
+    // 4) Calcular entrada, salida y total trabajado
+    let entradaDt, salidaDt;
+    if (detallesOrdenados.length >= 2) {
+      entradaDt = new Date(detallesOrdenados[0].timestamp._seconds * 1000);
+      salidaDt  = new Date(detallesOrdenados.at(-1).timestamp._seconds * 1000);
+    } else if (detallesOrdenados.length === 1) {
+      entradaDt = new Date(detallesOrdenados[0].timestamp._seconds * 1000);
+      salidaDt  = null;
+    }
+    const diffMs    = salidaDt ? (salidaDt - entradaDt) : 0;
+    const horasTrab = Math.floor(diffMs / 3600000);
+    const minTrab   = Math.floor((diffMs % 3600000) / 60000);
+  
+    // 5) Calcular atraso
+    let atrasoMin = 0;
+    if (horariosEmp.entrada && entradaDt) {
+      const [hEsp, mEsp] = horariosEmp.entrada.split(':').map(Number);
+      const scheduled    = hEsp * 60 + mEsp;
+      const actual       = entradaDt.getHours() * 60 + entradaDt.getMinutes();
+      atrasoMin = Math.max(0, actual - scheduled);
+    }
+  
+    // 6) Calcular horas extra
+    let horasExtra = 0, minExtra = 0, extraMs = 0;
+    if (salidaDt && horariosEmp.salida) {
+      const [hSal, mSal]   = horariosEmp.salida.split(':').map(Number);
+      const salidaProg     = new Date(entradaDt);
+      salidaProg.setHours(hSal, mSal, 0, 0);
+      extraMs = Math.max(0, salidaDt - salidaProg);
+      horasExtra = Math.floor(extraMs / 3600000);
+      minExtra   = Math.floor((extraMs % 3600000) / 60000);
+    }
+  
+    // 7) Calcular horas extra netas
+    const netMs = Math.max(0, extraMs - atrasoMin * 60_000);
+    const hNet  = Math.floor(netMs / 3600000);
+    const mNet  = Math.floor((netMs % 3600000) / 60000);
+  
+    // 8) Calcular duración programada del turno
+    let durTurnoH = 0, durTurnoM = 0;
+    if (horariosEmp.entrada && horariosEmp.salida) {
+      const [hEi, mEi] = horariosEmp.entrada.split(':').map(Number);
+      const [hEs, mEs] = horariosEmp.salida.split(':').map(Number);
+      const startMin   = hEi * 60 + mEi;
+      const endMin     = hEs * 60 + mEs;
+      const durMin     = Math.max(0, endMin - startMin);
+      durTurnoH = Math.floor(durMin / 60);
+      durTurnoM = durMin % 60;
+    }
+  
+    // 9) Construir el cuerpo del modal
+    let body = `<ul class="space-y-2 text-gray-100">
+      <li class="font-semibold">Total trabajado: ${horasTrab}h ${minTrab}m</li>`;
+  
+    if (horasExtra > 0 || minExtra > 0) {
+      body += `<li class="text-green-400">Horas extra brutas: ${horasExtra}h ${minExtra}m</li>`;
+    }
+    if (atrasoMin > 0) {
+      body += `<li class="text-red-400">Atraso: ${atrasoMin} min</li>`;
+    }
+    if (hNet > 0 || mNet > 0) {
+      body += `<li class="text-yellow-400">Horas extra netas: ${hNet}h ${mNet}m</li>`;
+    }
+  
+    // Separador
+    body += `<li><hr class="border-gray-600 my-2"></li>`;
+  
 
-    const detallesOrdenados = [...detalles].sort((a, b) => {
-      const tA = a.timestamp._seconds * 1000 + ((a.timestamp._nanoseconds || 0) / 1e6);
-      const tB = b.timestamp._seconds * 1000 + ((b.timestamp._nanoseconds || 0) / 1e6);
-      return tA - tB;
+    // 10) Listar cada marca con rol, icono y color
+    detallesOrdenados.forEach((r, i) => {
+      const dt   = new Date(r.timestamp._seconds * 1000);
+      const hora = fmtHoraConDia(dt, fecha);   // ← usa helper
+
+      // Determinar rol según posición
+      let rol, icono, colorClass;
+      if (i === 0) {
+        rol        = 'Entrada';
+        icono      = '▶️';
+        colorClass = 'text-green-300';
+      } else if (i === detallesOrdenados.length - 1) {
+        rol        = 'Salida';
+        icono      = '⏹️';
+        colorClass = 'text-red-300';
+      } else {
+        rol        = 'Pausa';
+        icono      = '⏸️';
+        colorClass = 'text-yellow-300';
+      }
+
+      body += `
+        <li class="${colorClass} flex items-center space-x-2">
+          <span>${icono}</span>
+          <span><strong>${rol}:</strong> ${hora}</span>
+        </li>
+      `;
     });
 
-    const horariosEmp = (state.horarios[empId] && state.horarios[empId][fecha]) || {};
-    modalTitulo.textContent = `Detalle de ${state.empleados[empId] || empId} - ${formatFechaLarga(fecha)}`;
-
-    let body = '<ul class="space-y-2">';
-    if (detallesOrdenados.length === 0) {
-      body += '<li class="text-red-400">No hay registros de asistencia para este día</li>';
-    } else {
-      detallesOrdenados.forEach((registro, index) => {
-        const dt = new Date(registro.timestamp._seconds * 1000 + ((registro.timestamp._nanoseconds || 0) / 1e6));
-        const hora = dt.toLocaleTimeString('es-CL');
-        const tipo = registro.tipo || 'No especificado';
-        body += `<li class="text-gray-100">
-          <span class="font-semibold">Marca ${index + 1}:</span> 
-          ${hora} (${tipo})
-        </li>`;
-      });
-    }
-
+  
+    // 11) Mostrar turno programado y duración
     if (horariosEmp.entrada || horariosEmp.salida) {
-      body += '<li class="mt-4 text-gray-400">Horario programado:</li>';
-      if (horariosEmp.entrada) body += `<li class="text-gray-400">Entrada: ${horariosEmp.entrada}</li>`;
-      if (horariosEmp.salida) body += `<li class="text-gray-400">Salida: ${horariosEmp.salida}</li>`;
+      body += `<li class="mt-2 font-semibold">Horario programado:</li>`;
+      if (horariosEmp.entrada) body += `<li>Entrada: ${horariosEmp.entrada}</li>`;
+      if (horariosEmp.salida)  body += `<li>Salida:   ${horariosEmp.salida}</li>`;
+      if (durTurnoH > 0 || durTurnoM > 0) {
+        body += `<li class="text-blue-400">Duración turno: ${durTurnoH}h ${durTurnoM}m</li>`;
+      }
     }
-
-    body += '</ul>';
+  
+    body += `</ul>`;
+  
+    // 12) Renderizar y abrir modal
     modalBody.innerHTML = body;
-    modal.style.display = 'flex';
+    modal.style.display  = 'flex';
   }
-
   function formatFechaCorta(iso) {
     const [year, month, day] = iso.split('-');
     const d = new Date(Number(year), Number(month) - 1, Number(day));
     return d.toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit' });
   }
-
   function formatFechaLarga(iso) {
     const [year, month, day] = iso.split('-').map(Number);
     const d = new Date(year, month - 1, day);
     return d.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: '2-digit' });
   }
-
   // Event Listeners
   refreshBtn.addEventListener('click', cargarSemanaCompleta);
   cerrarModal.addEventListener('click', () => modal.style.display = 'none');

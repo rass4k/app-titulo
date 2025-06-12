@@ -18,7 +18,7 @@ SMOOTH_FACTOR        = 0.9
 OBJETIVO_SEGUNDOS    = 3
 MOVIMIENTO_THRESHOLD = 20     # píxeles
 FACE_SIZE_THRESHOLD  = 0.8    # 80 % del recuadro
-BOX_W, BOX_H         = 250, 300
+BOX_W, BOX_H         = 300, 300
 CAM_INDEX            = 0      # cambia si usas otra cámara
 
 # -------------- UTILIDADES --------------

@@ -7,6 +7,22 @@
       --light: #f5f6fa;
       --accent: #fd79a8;
     }
+    #resetModal .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;               /* Aumentado el espacio entre botones */
+      margin-top: 2rem;         /* Más espacio desde el input */
+    }
+    
+    #resetModal .auth-btn {
+        flex: 1;                  /* Hace que los botones tengan el mismo ancho */
+        max-width: 150px;         /* Limita el ancho máximo de los botones */
+        padding: 0.75rem 1.5rem;  /* Más padding para mejor apariencia */
+    }
+    
+    #resetModal .input-group {
+        margin-bottom: 1.5rem;    /* Espacio después del grupo de input */
+    }
     
     body {
       font-family: 'Poppins', sans-serif;

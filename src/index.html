@@ -6,7 +6,7 @@
   <!-- Content Security Policy ajustada para permitir Google Fonts y Firebase Auth -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self'
+    script-src 'self' 'unsafe-inline'
       https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js
       https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
@@ -20,14 +20,40 @@
       https://firebaselogging-pa.googleapis.com
       https://connection-bd.onrender.com;
   ">
-
-
   <title>Mi App de Reconocimiento Facial</title>
-  <!-- Asegúrate de que “styles.css” realmente exista en la misma carpeta que este index.html -->
   <link rel="stylesheet" href="./assets/index.css">
-  <!-- Google Fonts (Poppins) -->
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+
+  <style>
+    /* Modal de fondo semitransparente */
+    #resetModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    /* Ajuste para centrar el auth-container dentro del modal */
+    #resetModal .auth-container {
+      max-width: 380px;
+      width: 90%;
+      margin: 0 auto;
+    }
+    #resetModal .modal-content .buttons {
+      display: flex;
+      justify-content: center; /* Centra ambos botones en la misma línea */
+      gap: 1rem;               /* Espacio de 1rem entre cada botón */
+      margin-top: 1.5rem;      /* Opcional: un poco de separación extra desde el input */
+    }
+
+/* Si quieres que los botones tengan el mismo ancho, puedes usar: */
+    #resetModal .modal-content .buttons .auth-btn {
+      flex: 1;                 /* Hace que cada botón ocupe el mismo ancho disponible */
+    }
+  </style>
 </head>
 <body>
   <div class="auth-container animate__animated animate__fadeIn animate__delay-0.5s glow" id="login-container">
@@ -43,7 +69,15 @@
       </div>
       <button type="submit" class="auth-btn">Entrar</button>
     </form>
-    <p class="auth-footer">¿No tienes cuenta? <button id="mostrarRegistro" class="auth-toggle">Registrarse</button></p>
+
+    <!-- Enlace para “Olvidaste tu contraseña?” -->
+    <p class="auth-footer">
+      <button id="forgotPasswordLink" class="auth-toggle">¿Olvidaste tu contraseña?</button>
+    </p>
+
+    <p class="auth-footer">
+      ¿No tienes cuenta? <button id="mostrarRegistro" class="auth-toggle">Registrarse</button>
+    </p>
   </div>
 
   <div class="auth-container animate__animated animate__fadeIn hidden" id="registro-container">
@@ -63,8 +97,38 @@
       </div>
       <button type="submit" class="auth-btn">Registrarse</button>
     </form>
-    <p class="auth-footer">¿Ya tienes cuenta? <button id="mostrarLogin" class="auth-toggle">Volver al login</button></p>
+    <p class="auth-footer">
+      ¿Ya tienes cuenta? <button id="mostrarLogin" class="auth-toggle">Volver al login</button>
+    </p>
   </div>
+
+  <!-- Modal para restablecer contraseña (usa las mismas clases que el formulario) -->
+
+<div id="resetModal">
+    <div class="auth-container animate__animated animate__fadeIn">
+        <h2 class="auth-title">Recuperar Contraseña</h2>
+        <form id="resetForm" class="animate-fade-in">
+            <div class="input-group" style="margin-bottom: 2rem;">
+                <label for="resetEmail">Ingresa tu correo</label>
+                <input type="email" id="resetEmail" class="auth-input" placeholder="tucorreo@ejemplo.com" required>
+            </div>
+            <div class="buttons">
+                <button type="button" class="auth-btn btn-close">Cancelar</button>
+                <button type="submit" class="auth-btn btn-send">Enviar</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="toast-container" style="
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+"></div>
+
 
   <!-- Firebase JS SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>

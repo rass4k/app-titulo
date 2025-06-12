@@ -1,4 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
+// src/main/preload.js
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  openVerifyWindow: (verifyUrl) => ipcRenderer.invoke('open-verify-window', verifyUrl),
+  onEmailVerified: (callback) => ipcRenderer.on('email-verified', (_e, status) => callback(status))
+});
+
 
 contextBridge.exposeInMainWorld("facialAPI", {
   /**
@@ -10,6 +17,7 @@ contextBridge.exposeInMainWorld("facialAPI", {
   /**
    * Lanza reconocimiento facial continuo (mismo nombre, pero por evento).
    */
+  
   compararRostros: (idToken) => ipcRenderer.send('compararRostros', idToken),
 
   /**

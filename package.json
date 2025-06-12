@@ -56,8 +56,11 @@
   "license": "MIT",
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
+    "chart.js": "^4.4.9",
     "electron-squirrel-startup": "^1.0.1",
     "firebase": "^11.6.0",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "node-fetch": "^2.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

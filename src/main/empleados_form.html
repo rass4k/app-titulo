@@ -2,6 +2,18 @@
     <html lang="es">
       <head>
         <meta charset="UTF-8" />
+        <meta http-equiv="Content-Security-Policy" content="
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 
+            https://cdn.tailwindcss.com 
+            https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js 
+            https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js 
+            https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js;
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com;
+          img-src 'self' data:;
+          connect-src 'self';
+        ">
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Asignación de Turnos</title>
         <script src="https://cdn.tailwindcss.com"></script>

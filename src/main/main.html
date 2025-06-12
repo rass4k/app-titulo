@@ -2,189 +2,347 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js https://www.gstatic.com 'unsafe-inline';
+      style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline';
+      font-src 'self' https://cdnjs.cloudflare.com;
+      img-src 'self' data:;
+      connect-src 'self' https://www.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://connection-bd.onrender.com;
+    ">
     <title>Panel Principal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <link rel="stylesheet" href="../assets/main.css" />
   </head>
   <body>
     <div id="container">
-        <!-- Sidebar -->
-        <div id="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <span class="logo-text">AdminPro</span>
+      <div id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <div class="logo-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <span class="logo-text">AdminPro</span>
+          </div>
+        </div>
+        
+        <ul>
+          <li>
+            <a href="#" id="menu-dashboard" class="active">
+              <i class="fas fa-tachometer-alt"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="menu-gestion-empleados">
+              <i class="fas fa-users-cog"></i>
+              <span>Gestión Empleados</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="menu-registrar-empleados">
+              <i class="fas fa-user-plus"></i>
+              <span>Registrar Empleados</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" id="menu-registro-asistencia">
+              <i class="fas fa-clipboard-check"></i>
+              <span>Registro de Asistencia</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Main content -->
+      <div id="content">
+        <header
+          id="header"
+          class="flex items-center justify-between px-6 py-4 bg-gray-800"
+        >
+          <!-- IZQUIERDA: botón toggle -->
+          <div class="header-left flex items-center">
+            <button
+              id="toggle-sidebar"
+              class="text-gray-300 hover:text-white focus:outline-none"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+          </div>
+
+          <!-- CENTRO: buscador -->
+          <div class="flex-1 flex justify-center px-4">
+            <div class="relative w-full max-w-md">
+              <i
+                class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              ></i>
+              <input
+                id="global-search"
+                type="text"
+                placeholder="Buscar..."
+                class="w-full pl-10 pr-4 py-2
+                      bg-gray-700 text-white placeholder-gray-400
+                      rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <!-- dropdown de sugerencias -->
+              <div
+                id="search-suggestions"
+                class="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded hidden
+                      z-10 max-h-60 overflow-auto"
+              ></div>
+            </div>
+          </div>
+
+          <!-- DERECHA: avatar + dropdown -->
+          <div class="header-right relative flex items-center space-x-3">
+            <button
+              id="user-menu-button"
+              class="user-btn flex items-center space-x-2 text-white focus:outline-none"
+            >
+              <div
+                class="user-avatar h-8 w-8 bg-indigo-600 rounded-full
+                      flex items-center justify-center text-white font-medium"
+              >
+                AD
+              </div>
+              <span class="user-name">Admin</span>
+              <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+            </button>
+
+            <div
+              id="user-dropdown"
+              class="user-dropdown hidden absolute right-0 mt-2 w-48 bg-gray
+                    rounded shadow-lg z-20"
+            >
+              <a
+                href="#"
+                id="profile-button"
+                data-action="profile"
+                class="dropdown-item flex items-center px-4 py-2 hover:bg-white-100"
+              >
+                <i class="fas fa-user mr-2"></i>
+                <span>Mi perfil</span>
+              </a>
+              <a
+                href="#"
+                class="dropdown-item flex items-center px-4 py-2 hover:bg-white-100"
+              >
+                <i class="fas fa-cog mr-2"></i>
+                <span>Configuración</span>
+              </a>
+              <a
+                href="#"
+                id="logout-button"
+                class="dropdown-item flex items-center px-4 py-2 hover:bg-white-100"
+              >
+                <i class="fas fa-sign-out-alt mr-2"></i>
+                <span>Cerrar sesión</span>
+              </a>
+  
+          </div>
+        </header>
+        
+        
+        <div id="page-content">
+          <h1 id="welcome-message">Bienvenido, Administrador</h1>
+          
+          <div id="dashboard-content">
+            <!-- Dashboard content -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-title">Empleados Activos</div>
+                <div class="stat-value">142</div>
+                <div class="stat-change">
+                  <i class="fas fa-arrow-up"></i>
+                  <span>5.2% este mes</span>
                 </div>
+              </div>
+              
+              <div class="stat-card">
+                <i class="fas fa-calendar-check"></i>
+                <div class="stat-title">Asistencias Hoy</div>
+                <div class="stat-value">128</div>
+                <div class="stat-change">
+                  <i class="fas fa-arrow-up"></i>
+                  <span>3.8% desde ayer</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <i class="fas fa-user-plus"></i>
+                <div class="stat-title">Nuevos Registros</div>
+                <div class="stat-value">7</div>
+                <div class="stat-change down">
+                  <i class="fas fa-arrow-down"></i>
+                  <span>1.2% este mes</span>
+                </div>
+              </div>
+              
+              <div class="stat-card">
+                <i class="fas fa-clock"></i>
+                <div class="stat-title">Horas Trabajadas</div>
+                <div class="stat-value">1,248</div>
+                <div class="stat-change">
+                  <i class="fas fa-arrow-up"></i>
+                  <span>8.5% esta semana</span>
+                </div>
+              </div>
             </div>
             
-            <ul>
-                <li>
-                    <a href="#" id="menu-dashboard" class="active">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="menu-gestion-empleados">
-                        <i class="fas fa-users-cog"></i>
-                        <span>Gestión Empleados</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="menu-registrar-empleados">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Registrar Empleados</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="#" id="menu-registro-asistencia">
-                        <i class="fas fa-clipboard-check"></i>
-                        <span>Registro de Asistencia</span>
-                    </a>
-                </li>
-            </ul>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
+              <!-- Asistencia Mensual -->
+              <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-lg font-semibold text-gray-800">Asistencia Mensual</h2>
+                </div>
+                <canvas id="chartAsistencia" class="h-64"></canvas>
+              </div>
+            
+              <!-- Distribución por Empleado -->
+              <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                  <h2 class="text-lg font-semibold text-gray-800">Distribución por Empleado</h2>
+                </div>
+                <canvas id="chartEmpleado" class="h-64"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <div id="gestion-empleados-content" class="hidden">
+            <!-- Employee management content -->
+            <div class="card">
+              <div class="card-title">Gestión de Empleados</div>
+              <p>Tabla con lista de empleados y herramientas de gestión...</p>
+            </div>
+          </div>
+          
+          <div id="registrar-empleados-content" class="hidden">
+            <!-- Employee registration content -->
+            <div class="card">
+              <div class="card-title">Registrar Nuevos Empleados</div>
+              <p>Formulario completo para registrar nuevos empleados...</p>
+            </div>
+          </div>
+          
+          <div id="registro-asistencia-content" class="hidden">
+            <!-- Attendance registration content -->
+            <div class="card">
+              <div class="card-title">Registro de Asistencia</div>
+              <p>Sistema de registro de asistencia con opciones avanzadas...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmación de cierre de sesión -->
+    <div
+      id="logout-modal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-96">
+        <div class="px-6 py-4 border-b">
+          <h3 class="text-lg font-semibold text-gray-800">¿Estás seguro?</h3>
+        </div>
+        <div class="px-6 py-4">
+          <p class="text-gray-600">¿Deseas cerrar tu sesión actual?</p>
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end space-x-2">
+          <button
+            id="cancel-logout"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+          >
+            Cancelar
+          </button>
+          <button
+            id="confirm-logout"
+            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de “Mi perfil” -->
+    <div
+      id="profile-modal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden"
+    >
+      <div class="bg-white rounded-lg shadow-lg w-96">
+        <!-- Encabezado del modal -->
+        <div class="px-6 py-4 border-b bg-gray-100">
+          <h3 class="text-lg font-semibold text-gray-800">Mi perfil</h3>
         </div>
 
-        <!-- Main content -->
-        <div id="content">
-            <header id="header">
-                <div class="header-left">
-                    <button class="toggle-btn" id="toggle-sidebar">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    
-                    <div class="search-bar">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" placeholder="Buscar...">
-                    </div>
-                </div>
-                
-                <div class="relative">
-                    <button class="user-btn" id="user-menu-button">
-                        <div class="user-avatar">AD</div>
-                        <span class="user-name">Admin</span>
-                        <i class="fas fa-chevron-down text-xs"></i>
-                    </button>
-                    
-                    <div class="user-dropdown" id="user-dropdown">
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-user"></i>
-                            <span>Mi perfil</span>
-                        </a>
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-cog"></i>
-                            <span>Configuración</span>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Cerrar sesión</span>
-                        </a>
-                    </div>
-                </div>
-            </header>
-            
-            <div id="page-content">
-                <h1 id="welcome-message">Bienvenido, Administrador</h1>
-                
-                <div id="dashboard-content">
-                    <!-- Dashboard content -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <i class="fas fa-users"></i>
-                            <div class="stat-title">Empleados Activos</div>
-                            <div class="stat-value">142</div>
-                            <div class="stat-change">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>5.2% este mes</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <i class="fas fa-calendar-check"></i>
-                            <div class="stat-title">Asistencias Hoy</div>
-                            <div class="stat-value">128</div>
-                            <div class="stat-change">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>3.8% desde ayer</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <i class="fas fa-user-plus"></i>
-                            <div class="stat-title">Nuevos Registros</div>
-                            <div class="stat-value">7</div>
-                            <div class="stat-change down">
-                                <i class="fas fa-arrow-down"></i>
-                                <span>1.2% este mes</span>
-                            </div>
-                        </div>
-                        
-                        <div class="stat-card">
-                            <i class="fas fa-clock"></i>
-                            <div class="stat-title">Horas Trabajadas</div>
-                            <div class="stat-value">1,248</div>
-                            <div class="stat-change">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>8.5% esta semana</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 my-6">
-                        <!-- Asistencia Mensual -->
-                        <div class="bg-white rounded-lg shadow p-6">
-                          <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-semibold text-gray-800">Asistencia Mensual</h2>
-                          </div>
-                          <canvas id="chartAsistencia" class="h-64"></canvas>
-                        </div>
-                      
-                        <!-- Distribución por Empleado -->
-                        <div class="bg-white rounded-lg shadow p-6">
-                          <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-semibold text-gray-800">Distribución por Empleado</h2>
-                          </div>
-                          <canvas id="chartEmpleado" class="h-64"></canvas>
-                        </div>
-                      </div>
-                </div>
-                
-                <div id="gestion-empleados-content" class="hidden">
-                    <!-- Employee management content -->
-                    <div class="card">
-                        <div class="card-title">Gestión de Empleados</div>
-                        <p>Tabla con lista de empleados y herramientas de gestión...</p>
-                    </div>
-                </div>
-                
-                <div id="registrar-empleados-content" class="hidden">
-                    <!-- Employee registration content -->
-                    <div class="card">
-                        <div class="card-title">Registrar Nuevos Empleados</div>
-                        <p>Formulario completo para registrar nuevos empleados...</p>
-                    </div>
-                </div>
-                
-                <div id="registro-asistencia-content" class="hidden">
-                    <!-- Attendance registration content -->
-                    <div class="card">
-                        <div class="card-title">Registro de Asistencia</div>
-                        <p>Sistema de registro de asistencia con opciones avanzadas...</p>
-                    </div>
-                </div>
-            </div>
+        <!-- Cuerpo del modal -->
+        <div class="px-6 py-4 space-y-4">
+          <!-- Nombre -->
+          <div>
+            <label for="profile-name" class="block text-gray-700 text-sm mb-1">Nombre</label>
+            <input
+              id="profile-name"
+              type="text"
+              class="w-full bg-gray-100 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled
+              value="Administrador"
+            />
+          </div>
+
+          <!-- Correo -->
+          <div>
+            <label for="profile-email" class="block text-gray-700 text-sm mb-1">Correo electrónico</label>
+            <input
+              id="profile-email"
+              type="email"
+              class="w-full bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              value="admin@ejemplo.com"
+            />
+          </div>
+
+          <!-- Contraseña actual (solo en edición) -->
+          <div id="profile-password-container" class="hidden">
+            <label for="profile-password" class="block text-gray-700 text-sm mb-1">
+              Contraseña actual
+            </label>
+            <input
+              id="profile-password"
+              type="password"
+              class="w-full bg-gray-100 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <!-- Mensaje de validación -->
+          <p id="profile-message" class="text-sm text-red-600"></p>
         </div>
+
+        <!-- Pie del modal -->
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-2">
+          <button
+            id="cancel-profile-btn"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+          >
+            Cerrar
+          </button>
+          <button
+            id="save-profile"
+            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+          >
+            Guardar cambios
+          </button>
+        </div>
+      </div>
     </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>

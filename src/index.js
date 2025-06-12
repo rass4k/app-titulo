@@ -1,26 +1,71 @@
-// src/main/main.js
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { spawn } = require('child_process');
-const path = require('node:path');
+const path = require('path');
 
 if (require('electron-squirrel-startup')) app.quit();
 
+let mainWindow;
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 720,
     webPreferences: {
-      contextIsolation: true,            // Aísla el contexto de Node del renderer
-      nodeIntegration: false,            // Impide require/import desde el HTML
-      enableRemoteModule: false,         // Si no lo necesitas, mantenlo en false
-      preload: path.join(__dirname, 'preload.js'), 
+      contextIsolation: true,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  // mainWindow.webContents.openDevTools(); // Comenta esto en producción
 }
 
+// 1) Apertura de modal para verificación de correo
+ipcMain.handle('open-verify-window', async () => {
+  return new Promise((resolve) => {
+    const verifyWindow = new BrowserWindow({
+      parent: mainWindow,
+      modal: true,
+      width: 500,
+      height: 600,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    // Carga la URL de verificación en tu servidor
+    verifyWindow.loadURL('https://connection-bd.onrender.com/verify-email');
+
+    // Escucha navegación para detectar resultado
+    verifyWindow.webContents.on('did-navigate', (event, url) => {
+      try {
+        const { URL } = require('url');
+        const parsed = new URL(url);
+        const status = parsed.searchParams.get('status');
+        if (status === 'success') {
+          mainWindow.webContents.send('email-verified', { ok: true });
+          resolve({ ok: true });
+          verifyWindow.close();
+        } else if (status === 'error') {
+          mainWindow.webContents.send('email-verified', { ok: false });
+          resolve({ ok: false });
+          verifyWindow.close();
+        }
+      } catch (e) {
+        // Ignorar errores de parseo de URL
+      }
+    });
+
+    // Si el usuario cierra la ventana sin confirmar
+    verifyWindow.on('closed', () => {
+      resolve({ ok: false });
+    });
+  });
+});
+
+// 2) Captura de embedding desde Python
 ipcMain.handle('capturarEmbeddingEnVivo', () => {
   return new Promise((resolve, reject) => {
     const pyPath = path.join(__dirname, 'python', 'registerv2.py');
@@ -38,7 +83,7 @@ ipcMain.handle('capturarEmbeddingEnVivo', () => {
           resolve(json.embedding);
           child.kill();
         } catch {
-          // Aún no llegó todo el JSON
+          // Esperando JSON completo
         }
       }
     });
@@ -55,10 +100,11 @@ ipcMain.handle('capturarEmbeddingEnVivo', () => {
 
 const fetch = require('node-fetch');
 
+// 3) Comparar rostros y registrar asistencia
 ipcMain.on('compararRostros', (event, idToken) => {
   const pyPath = path.join(__dirname, 'python', 'asistencia.py');
-  const child  = spawn('python', [pyPath], { stdio: ['pipe', 'pipe', 'pipe'] });
-  let buffer   = '';
+  const child = spawn('python', [pyPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let buffer = '';
 
   child.stdout.on('data', async chunk => {
     buffer += chunk.toString();
