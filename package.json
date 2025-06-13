@@ -1,15 +1,40 @@
 {
   "name": "facepulse",
   "productName": "FacePulse",
-  "version": "1.1.2",
-  "description": "My Electron application description",
+  "version": "1.1.4",
+  "description": "Programada por Rodrigo Cancino",
   "main": "src/index.js",
   "scripts": {
+    "freeze": "py -m pip install -r requirements.txt && py -m PyInstaller python/reconocer.py --onefile --name facepulse-rec --distpath bin --add-data \"models;models\"",
+    "prebuild": "npm run freeze",
+    "build":    "electron-builder --win nsis portable --mac dmg --linux AppImage",
+    "dev":      "electron .",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\""
+  },
+  "build": {
+    "appId": "com.tuapp.id",
+    "win": {
+      "target": ["portable"],
+      "icon": "path/to/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-portable.exe"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,__pycache__,thumbs.db,.gitignore,.gitattributes,.flowconfig,.yarn-metadata.json,.idea,appveyor.yml,.travis.yml,circle.yml,npm-debug.log,.nyc_output,yarn.lock,.yarn-integrity}"
+    ]
   },
   "config": {
     "forge": {
