@@ -94,3 +94,15 @@ dist/
 bin/
 *.exe
 *.asar
+
+# Ignorar artefactos de compilación
+dist/
+bin/
+*.exe
+*.asar
+*.zip
+*.log
+*.pyc
+__pycache__/
+.env
+
