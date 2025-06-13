@@ -5,7 +5,7 @@
   "description": "Programada por Rodrigo Cancino",
   "main": "src/index.js",
   "scripts": {
-    "freeze": "py -m pip install -r requirements.txt && py -m PyInstaller python/reconocer.py --onefile --name facepulse-rec --distpath bin --add-data \"models;models\"",
+    "freeze": "py -m pip install -r requeriments.txt && py -m PyInstaller src/python/reconas.py --onefile --name facepulse-rec --distpath bin --add-data \"models;models\"",
     "prebuild": "npm run freeze",
     "build":    "electron-builder --win nsis portable --mac dmg --linux AppImage",
     "dev":      "electron .",
