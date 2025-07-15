@@ -105,4 +105,4 @@ bin/
 *.pyc
 __pycache__/
 .env
-
+/build/

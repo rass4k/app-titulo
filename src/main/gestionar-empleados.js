@@ -47,19 +47,34 @@ async function cargarEmpleados() {
 }
 
 function abrirModalVer(emp) {
-  document.getElementById("ver-id").textContent      = emp.empId;
-  document.getElementById("ver-nombre").textContent  = emp.nombre;
-  document.getElementById("ver-rut").textContent     = emp.rut      || "—";
-  document.getElementById("ver-telefono").textContent= emp.telefono || "—";
-  document.getElementById("ver-email").textContent   = emp.email    || "—";
-
-  // si guardas la fecha en Firestore:
-  if (emp.creadoEn && emp.creadoEn.toDate) {
-    const d = emp.creadoEn.toDate();
-    document.getElementById("ver-creado").textContent = d.toLocaleString();
-  } else {
-    document.getElementById("ver-creado").textContent = "—";
+  // Campos básicos
+  document.getElementById("ver-id").textContent       = emp.empId || "—";
+  document.getElementById("ver-nombre").textContent   = emp.nombre_completo || emp.nombres || emp.nombre || "—";
+  document.getElementById("ver-rut").textContent      = emp.rut      || "—";
+  document.getElementById("ver-telefono").textContent = emp.telefono || "—";
+  document.getElementById("ver-email").textContent    = emp.email    || "—";
+  // Fecha de creación: maneja Firestore Timestamp o string ISO
+  let creadoText = "—";
+  if (emp.creadoEn) {
+    if (typeof emp.creadoEn.toDate === "function") {
+      // Firestore Timestamp
+      creadoText = emp.creadoEn.toDate().toLocaleString();
+    } else {
+      // Cadena ISO o Date string
+      const d = new Date(emp.creadoEn);
+      if (!isNaN(d)) creadoText = d.toLocaleString();
+    }
   }
+  let modificadoText = "No ha sido modificado";
+  if (emp.actualizadoEn) {
+    // si es ISO string:
+    const d = new Date(emp.actualizadoEn);
+    if (!isNaN(d)) {
+      modificadoText = d.toLocaleString();
+    }
+  }
+  document.getElementById("ver-modificado").textContent = modificadoText;
+  document.getElementById("ver-creado").textContent = creadoText;
   modalVer.classList.remove("hidden");
   modalVer.classList.add("flex");
 }
@@ -148,11 +163,16 @@ if (inputBuscar) {
 
 // 6) Modal Editar
 function abrirModalEditar(emp) {
-  inputEditId.value      = emp.empId;
-  inputEditNombre.value  = emp.nombre;
+  inputEditId.value                 = emp.empId;
   document.getElementById("edit-rut").value      = emp.rut      || "";
+  document.getElementById("edit-nombres").value  = emp.nombres  || "";        // aquí cambió
+  document.getElementById("edit-apellidoPaterno").value = emp.apellidoPaterno || "";
+  document.getElementById("edit-apellidoMaterno").value = emp.apellidoMaterno || "";
   document.getElementById("edit-telefono").value = emp.telefono || "";
   document.getElementById("edit-email").value    = emp.email    || "";
+  // También rellenamos el campo "edit-nombre" si lo quieres usar:
+  inputEditNombre.value            = emp.nombre_completo?.split(" ")[0] || emp.nombre || "";
+
   modalEditar.style.display = "flex";
   
 }
@@ -167,11 +187,17 @@ if (btnCancelarEd) {
 if (formEditar) {
   formEditar.addEventListener("submit", async e => {
     e.preventDefault();
+    const nombre   = inputEditNombre.value.trim(); 
     const empId    = inputEditId.value;
-    const nombre   = inputEditNombre.value.trim();
     const rut      = document.getElementById("edit-rut").value.trim();
     const telefono = document.getElementById("edit-telefono").value.trim();
     const email    = document.getElementById("edit-email").value.trim();
+    const elApP = document.getElementById("edit-apellidoPaterno");
+    const apellidoPaterno = elApP ? elApP.value.trim() : "";
+    
+    const elApM = document.getElementById("edit-apellidoMaterno");
+    const apellidoMaterno = elApM ? elApM.value.trim() : "";
+    const nombre_completo  = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`;
 
     if (!nombre) {
       showToast("El nombre no puede quedar vacio", "error");
@@ -185,7 +211,15 @@ if (formEditar) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({ nombre, rut, telefono, email })
+      body: JSON.stringify({
+        nombre,
+        rut,
+        telefono:  telefono || "",
+        email:     email    || "",
+        apellidoPaterno: apellidoPaterno || "",
+        apellidoMaterno: apellidoMaterno || "",
+        nombre_completo
+      })
     });
     if (!res.ok) throw new Error(`Error ${res.status}`);
     modalEditar.style.display = "none";

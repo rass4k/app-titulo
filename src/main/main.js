@@ -454,6 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
               data: {
                 labels: data.grafico1.labels,
                 datasets: [{ 
+                  label: "Asistencias diarias",  
                   data: data.grafico1.data,
                   backgroundColor: "rgba(99,102,241,0.7)",
                   borderColor:     "rgba(99,102,241,1)",

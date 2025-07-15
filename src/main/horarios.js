@@ -86,6 +86,14 @@ let empleados = [];
 let celdaSeleccionada = null;
 
 
+// utils-turnos.js (o en la parte superior del mismo archivo)
+function formatearTurno(t) {
+  if (t?.tipo !== "turno") return "—";               // libre o vacaciones ya están controlados arriba
+  const ent = t.entrada ?? "";
+  const sal = t.salida  ?? "";
+  if (!ent || !sal || ent === "-" || sal === "-") return "—";
+  return `${ent}/${sal}`;
+}
 
 async function obtenerEmpleados() {
   const token = sessionStorage.getItem("ID_TOKEN");
@@ -179,23 +187,36 @@ let turnosSemana = {};  // guardará el objeto completo { turnos:{ empleadoId:{ 
 
 async function cargarSemana(fechaLunes) {
   const semanaISO = toLocalISO(fechaLunes);
-        
-  console.log('semana:', semanaISO);
   const res = await fetch(`${API_URL}/turnos-semanales/${semanaISO}`, {
     headers: { Authorization: `Bearer ${sessionStorage.getItem("ID_TOKEN")}` }
   });
-  // si no existe, res.json() será null
   const data = await res.json();
-  turnosSemana = data?.turnos || {};  // si es null, asigna objeto vacío
+  turnosSemana = data?.turnos || {};
+
+  // Rellenar los días sin dato como "libre"
+  empleados.forEach(emp => {
+    const empId = emp.empId;
+    // Aseguro que exista el objeto para el empleado
+    turnosSemana[empId] = turnosSemana[empId] || {};
+
+    dias.forEach(d => {
+      if (!turnosSemana[empId][d.iso]) {
+        turnosSemana[empId][d.iso] = { tipo: "libre" };
+      }
+    });
+  });
+
+  console.log("turnosSemana completo:", turnosSemana);
 }
 function pintarTablaConTurnos() {
+  // 1) Limpio el tbody
   cuerpoTabla.innerHTML = "";
 
-  // Configurar la tabla principal
+  // 2) Aseguro estilos en la tabla
   const tabla = document.getElementById('tabla-turnos');
   tabla.className = 'w-full table-fixed';
 
-  // Reconstruir encabezado
+  // 3) Reconstruyo el encabezado con los días ya calculados en `dias`
   const encabezado = document.querySelector("#tabla-turnos thead tr");
   encabezado.innerHTML = "<th class='p-3 text-left font-medium text-primary w-1/6'>Empleado</th>";
   dias.forEach(d => {
@@ -205,11 +226,12 @@ function pintarTablaConTurnos() {
     encabezado.appendChild(th);
   });
 
+  // 4) Por cada empleado, creo una fila completa
   empleados.forEach(emp => {
     const fila = document.createElement("tr");
     fila.className = 'divide-x divide-gray-700 hover:bg-gray-800 transition-colors';
 
-    // Celda de nombre
+    // 4.1) Celda con su nombre
     const tdNombre = document.createElement("td");
     const primerNombre = emp.nombre?.split(" ")[0] || "SinNombre";
     tdNombre.className = 'p-3 font-medium text-gray-300 w-1/6';
@@ -217,51 +239,65 @@ function pintarTablaConTurnos() {
     tdNombre.dataset.empleadoId = emp.empId;
     fila.appendChild(tdNombre);
 
-    // Sus 7 celdas
+    // 4.2) Sus 7 celdas (una por cada día en `dias`)
     dias.forEach(d => {
       const celda = document.createElement("td");
       celda.className = 'p-3 text-center w-1/7';
       celda.dataset.empleadoId = emp.empId;
-      celda.dataset.fecha = d.iso;
+      celda.dataset.fecha       = d.iso;
 
-      const turno = turnosSemana[emp.empId]?.[d.iso];
-      if (turno) {
-        if (turno.tipo === "turno") {
-          celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
-            <span class="text-xs text-gray-400">${turno.entrada}/${turno.salida}</span>
-          </div>`;
-        } else if (turno.tipo === "vacaciones") {
-          celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
-            <span class="text-xs text-gray-400">Vacaciones</span>
-          </div>`;
-          celda.classList.add("vacaciones");
-        }
-      } else {
-        celda.innerHTML = `<div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
-          <span class="text-xs text-gray-400">-</span>
-        </div>`;
+      // Aquí viene la clave: si no hay turno para esa fecha, asumimos libre
+      const turno = turnosSemana[emp.empId]?.[d.iso] || { tipo: "libre" };
+
+      // 4.3) Decido texto y clases
+      let texto = "—";           // valor por defecto para tipos "libre" o datos incompletos
+      const clasesExtra = [];
+
+      if (turno.tipo === "vacaciones") {
+        texto = "Vacaciones";
+        clasesExtra.push("vacaciones");
+      }
+      else if (
+        turno.tipo === "turno" &&
+        typeof turno.entrada === "string" &&
+        typeof turno.salida  === "string"
+      ) {
+        texto = formatearTurno(turno);
       }
 
-      // Resto del código para feriados y eventos...
-      const esFeriado = feriados.includes(d.iso);
-      if (d.esDomingo || esFeriado) {
+      // 4.4) Pinto el contenido de la celda
+      celda.innerHTML = `
+        <div class="cursor-pointer py-1 px-2 rounded hover:bg-primary-transparent transition-all">
+          <span class="text-xs text-gray-400">${texto}</span>
+        </div>
+      `;
+      clasesExtra.forEach(c => celda.classList.add(c));
+
+      // 4.5) Marco domingos y feriados
+      if (d.esDomingo || feriados.includes(d.iso)) {
         celda.classList.add("dia-feriado");
-        celda.title = esFeriado ? "Feriado" : "Domingo";
+        celda.title = d.esDomingo ? "Domingo" : "Feriado";
       }
 
+      // 4.6) Click para abrir modal de edición
       celda.addEventListener('click', () => {
         celdaSeleccionada = celda;
         inputEntrada.value = '';
-        inputSalida.value = '';
+        inputSalida.value  = '';
         modal.style.display = 'block';
       });
 
       fila.appendChild(celda);
     });
 
+    // 4.7) Añado la fila al tbody
     cuerpoTabla.appendChild(fila);
   });
 }
+
+
+
+
 
 
 async function actualizarSemana() {

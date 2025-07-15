@@ -1,3 +1,18 @@
+import os, sys
+# 1) Si venimos del EXE de PyInstaller, usa _MEIPASS; si no, la carpeta del script
+if getattr(sys, "_MEIPASS", None):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(__file__)
+
+# 2) Apunta a la carpeta `weights` embebida
+weights_dir = os.path.join(base_path, "weights")
+
+# 3) Fuerza a DeepFace a usar ahí los .h5 en lugar de descargar
+os.environ["DEEPFACE_CACHE"] = weights_dir
+from deepface import DeepFace
+DeepFace.cache_folder = weights_dir
+
 import cv2
 import mediapipe as mp
 import numpy as np

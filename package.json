@@ -1,14 +1,16 @@
 {
   "name": "facepulse",
   "productName": "FacePulse",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Programada por Rodrigo Cancino",
   "main": "src/index.js",
   "scripts": {
-    "freeze": "py -m pip install -r requeriments.txt && py -m PyInstaller src/python/reconas.py --onefile --name facepulse-rec --distpath bin --add-data \"models;models\"",
+    "test:js": "jest",
+    "freeze": "py -m pip install -r requeriments.txt && py -m PyInstaller src/python/asistencia.py --onefile --name facepulse-asistencia --distpath bin --add-data \"src/assets/weights;weights\" --collect-all mediapipe --collect-all cv2 && py -m PyInstaller src/python/registerv2.py --onefile --name facepulse-register --distpath bin --add-data \"src/assets/weights;weights\" --collect-all mediapipe --collect-all cv2",
     "prebuild": "npm run freeze",
-    "build":    "electron-builder --win nsis portable --mac dmg --linux AppImage",
-    "dev":      "electron .",
+    "build": "electron-builder --win portable --x64",
+    "build-only": "electron-builder --win portable --x64",
+    "dev": "electron .",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -17,68 +19,48 @@
   },
   "build": {
     "appId": "com.tuapp.id",
-    "win": {
-      "target": ["portable"],
-      "icon": "path/to/icon.ico"
-    },
-    "portable": {
-      "artifactName": "${productName}-portable.exe"
+    "asar": true,
+    "directories": {
+      "output": "dist"
     },
     "files": [
       "**/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,__pycache__,thumbs.db,.gitignore,.gitattributes,.flowconfig,.yarn-metadata.json,.idea,appveyor.yml,.travis.yml,circle.yml,npm-debug.log,.nyc_output,yarn.lock,.yarn-integrity}"
-    ]
-  },
-  "config": {
-    "forge": {
-      "makers": [
+      "bin/facepulse-asistencia.exe",
+      "bin/facepulse-register.exe"
+    ],
+    "extraResources": [
+      {
+        "from": "src/assets/weights",
+        "to": "weights"
+      },
+      {
+        "from": "bin/facepulse-asistencia.exe",
+        "to": "facepulse-asistencia.exe"
+      },
+      {
+        "from": "bin/facepulse-register.exe",
+        "to": "facepulse-register.exe"
+      }
+    ],
+    "win": {
+      "icon": "path/to/icon.ico",
+      "target": [
         {
-          "name": "@electron-forge/maker-squirrel",
-          "platforms": [
-            "win32"
-          ],
-          "config": {
-            "name": "FacePulse"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin",
-            "win32",
-            "linux"
+          "target": "portable",
+          "arch": [
+            "x64"
           ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "platforms": [
-            "linux"
-          ],
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "platforms": [
-            "linux"
-          ],
-          "config": {}
         }
       ]
+    },
+    "portable": {
+    "requestExecutionLevel": "user",
+    "customNsisBinary": {
+      "url": "https://github.com/SoundSafari/NSISBI-ElectronBuilder/releases/download/1.0.0/nsisbi-electronbuilder-3.10.3.7z",
+      "checksum": "WRmZUsACjIc2s7bvsFGFRofK31hfS7riPlcfI1V9uFB2Q8s7tidgI/9U16+X0I9X2ZhNxi8N7Z3gKvm6ojvLvg=="   
     }
+  }
   },
-  "keywords": [],
-  "author": {
-    "name": "rass4k",
-    "email": "rodrigo.cancino2001@gmail.com"
-  },
-  "license": "MIT",
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "chart.js": "^4.4.9",
@@ -99,7 +81,16 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.0",
     "@electron-forge/plugin-fuses": "^7.8.0",
     "@electron/fuses": "^1.8.0",
+    "@types/jest": "^29.5.14",
     "electron": "35.1.0",
-    "electron-builder": "^26.0.12"
-  }
+    "electron-builder": "^26.0.12",
+    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0",
+    "ts-jest": "^29.4.0"
+  },
+  "author": {
+    "name": "rass4k",
+    "email": "rodrigo.cancino2001@gmail.com"
+  },
+  "license": "MIT"
 }
